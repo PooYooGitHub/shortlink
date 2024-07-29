@@ -28,7 +28,19 @@
         <hutool-all.version>5.8.20</hutool-all.version>
         <redisson.version>3.21.3</redisson.version>
         <guava.version>30.0-jre</guava.version>
+        <lombook.version>1.18.30</lombook.version>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombook.version}</version>
+        </dependency>
+    </dependencies>
+    <!--dependencies和dependencyManagement的区别就是
+        dependencyManagement：只是起规约的作用，引入的时候并不会真正下载jar文件
+        dependencies: 会下载jar包，并传递下去。所有模块都需呀的jar包就写在这里-->
     <dependencyManagement>
         <dependencies>
             <dependency>
