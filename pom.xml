@@ -38,9 +38,7 @@
             <version>${lombook.version}</version>
         </dependency>
     </dependencies>
-    <!--dependencies和dependencyManagement的区别就是
-        dependencyManagement：只是起规约的作用，引入的时候并不会真正下载jar文件
-        dependencies: 会下载jar包，并传递下去。所有模块都需呀的jar包就写在这里-->
+
     <dependencyManagement>
         <dependencies>
             <dependency>
