@@ -33,7 +33,7 @@ public class Result<T> implements Serializable {
 
     /**
      * 响应数据
-     */
+     */ 
     private T data;
 
     /**
