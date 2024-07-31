@@ -1,5 +1,6 @@
 package com.project.dto.resp;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Data;
 
 /**
@@ -25,6 +26,7 @@ public class UserRespDTO {
     /**
      * 手机号
      */
+    @JsonSerialize(using = com.project.common.serialize.PhoneDesensitizationSerializer.class)
     private String phone;
 
     /**
