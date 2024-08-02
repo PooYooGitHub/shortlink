@@ -1,6 +1,8 @@
 package com.project.dao.entity;
 
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -28,10 +30,6 @@ public class UserDO {
      */
     private String password;
 
-    /**
-     * 创建时间
-     */
-    private Date createTime;
 
     /**
      * 真实姓名
@@ -49,8 +47,15 @@ public class UserDO {
     private String mail;
 
     /**
+     * 创建时间
+     */
+    @TableField(fill = FieldFill.INSERT)
+    private Date createTime;
+
+    /**
      * 更新时间
      */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateTime;
 
     /**
@@ -61,6 +66,7 @@ public class UserDO {
     /**
      * 删除标识 0：未删除，1已删除
      */
+    @TableField(fill = FieldFill.INSERT)
     private int delFlag;
 
 }

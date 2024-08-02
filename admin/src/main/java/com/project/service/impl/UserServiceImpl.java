@@ -1,14 +1,19 @@
 package com.project.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.project.common.convention.errorcode.BaseErrorCode;
 import com.project.common.convention.exception.ClientException;
 import com.project.common.enums.UserErrorCode;
 import com.project.dao.entity.UserDO;
 import com.project.dao.mapper.UserMapper;
+import com.project.dto.req.UserRegisterReqDTO;
 import com.project.dto.resp.UserRespDTO;
 import com.project.service.UserService;
+import lombok.AllArgsConstructor;
+import org.redisson.api.RBloomFilter;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +21,10 @@ import org.springframework.stereotype.Service;
  * 用户接口实现层
  */
 @Service
+@AllArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements UserService {
+
+    private final RBloomFilter<String> userRegisterCachePenetrationBloomFilter;
 
     @Override
     public UserRespDTO getUserByUsername(String username) {
@@ -34,9 +42,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     @Override
     public Boolean hasUsername(String username) {
-        LambdaQueryWrapper<UserDO> eq = Wrappers.lambdaQuery(UserDO.class).eq(UserDO::getUsername, username);
-        UserDO userDO = baseMapper.selectOne(eq);
-        return userDO!=null;
+        return userRegisterCachePenetrationBloomFilter.contains(username);
+    }
+
+    @Override
+    public void register(UserRegisterReqDTO requestParam) {
+        if (hasUsername(requestParam.getUsername())) {
+            throw new ClientException(BaseErrorCode.USER_NAME_EXIST_ERROR);
+        }
+//        BeanUtils.copyProperties(requestParam, userDO);
+        UserDO userDO = BeanUtil.toBean(requestParam, UserDO.class);
+        int insert = baseMapper.insert(userDO);
+        if (insert < 1) {
+            throw new ClientException(UserErrorCode.USER_SAVE_ERROR);
+        }
+        userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
 
     }
 }
