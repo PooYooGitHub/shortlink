@@ -1,4 +1,4 @@
-package com.project.common.constant.result;
+package com.project.common.convention.result;
 
 import com.project.common.convention.errorcode.BaseErrorCode;
 import com.project.common.convention.exception.AbstractException;

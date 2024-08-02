@@ -1,4 +1,4 @@
-package com.project.common.constant.result;
+package com.project.common.convention.result;
 
 import lombok.Data;
 import lombok.experimental.Accessors;

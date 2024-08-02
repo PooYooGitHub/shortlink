@@ -1,7 +1,7 @@
 package com.project.controller;
 
-import com.project.common.constant.result.Result;
-import com.project.common.constant.result.Results;
+import com.project.common.convention.result.Result;
+import com.project.common.convention.result.Results;
 import com.project.dto.req.UserRegisterReqDTO;
 import com.project.dto.resp.UserRespDTO;
 import com.project.service.UserService;

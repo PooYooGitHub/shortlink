@@ -2,8 +2,8 @@ package com.project.common.web;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
-import com.project.common.constant.result.Result;
-import com.project.common.constant.result.Results;
+import com.project.common.convention.result.Result;
+import com.project.common.convention.result.Results;
 import com.project.common.convention.errorcode.BaseErrorCode;
 import com.project.common.convention.exception.AbstractException;
 import jakarta.servlet.http.HttpServletRequest;
