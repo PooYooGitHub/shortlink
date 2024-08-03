@@ -2,6 +2,7 @@ package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.common.convention.errorcode.BaseErrorCode;
@@ -10,6 +11,7 @@ import com.project.common.enums.UserErrorCode;
 import com.project.dao.entity.UserDO;
 import com.project.dao.mapper.UserMapper;
 import com.project.dto.req.UserRegisterReqDTO;
+import com.project.dto.req.UserUpdateReqDTO;
 import com.project.dto.resp.UserRespDTO;
 import com.project.service.UserService;
 import lombok.AllArgsConstructor;
@@ -71,5 +73,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         } finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    public void update(UserUpdateReqDTO requestParam) {
+        //TODO: 验证当前用户可不可以修该用户
+        LambdaUpdateWrapper<UserDO> eq = Wrappers.lambdaUpdate(UserDO.class).
+                eq(UserDO::getUsername, requestParam.getUsername());
+        baseMapper.update(BeanUtil.toBean(requestParam, UserDO.class), eq);
+        return ;
     }
 }
