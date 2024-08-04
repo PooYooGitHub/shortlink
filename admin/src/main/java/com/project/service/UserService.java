@@ -2,8 +2,10 @@ package com.project.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.project.dao.entity.UserDO;
+import com.project.dto.req.UserLoginReqDTO;
 import com.project.dto.req.UserRegisterReqDTO;
 import com.project.dto.req.UserUpdateReqDTO;
+import com.project.dto.resp.UserLoginRespDTO;
 import com.project.dto.resp.UserRespDTO;
 
 /**
@@ -35,4 +37,11 @@ public interface UserService extends IService<UserDO> {
      * @param requestParam 修改用户实体
      */
     void update(UserUpdateReqDTO requestParam);
+
+    /**
+     * 根据用户名和密码登录
+     * @param requestParam
+     * @return
+     */
+    UserLoginRespDTO login(UserLoginReqDTO requestParam);
 }

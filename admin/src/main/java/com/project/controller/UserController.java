@@ -2,8 +2,10 @@ package com.project.controller;
 
 import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
+import com.project.dto.req.UserLoginReqDTO;
 import com.project.dto.req.UserRegisterReqDTO;
 import com.project.dto.req.UserUpdateReqDTO;
+import com.project.dto.resp.UserLoginRespDTO;
 import com.project.dto.resp.UserRespDTO;
 import com.project.service.UserService;
 import lombok.AllArgsConstructor;
@@ -48,6 +50,13 @@ public class UserController {
     public Result<Void> update(@RequestBody UserUpdateReqDTO requestParam){
         userService.update(requestParam);
         return Results.success();
+    }
 
+    /**
+     * 用户登录功能
+     */
+    @PostMapping("/api/short-link/admin/v1/user/login")
+    public Result<UserLoginRespDTO> login(@RequestBody UserLoginReqDTO requestParam) {
+        return Results.success(userService.login(requestParam));
     }
 }
