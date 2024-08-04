@@ -26,6 +26,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
+
 import static com.project.common.constant.RedisCacheConstant.LOCK_USER_REGISTER_KEY;
 import static com.project.common.enums.UserErrorCode.USER_NUll;
 
@@ -100,15 +102,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                 eq(UserDO::getDelFlag, 0);
         UserDO userDO = baseMapper.selectOne(eq);
         if (userDO == null) {
-            throw new ClientException(USER_NUll);
+            throw new ClientException("用户名或密码错误");
         }
         String uuid = UUID.randomUUID().toString();
 
         //将uuid存入redis
-        stringRedisTemplate.opsForValue().set(uuid, JSON.toJSONString(userDO));
+        stringRedisTemplate.opsForValue().set(uuid, JSON.toJSONString(userDO),30L, TimeUnit.MINUTES);
 
         return new UserLoginRespDTO(uuid);
 
 
+    }
+
+    @Override
+    public Boolean checkLogin(String token) {
+        String s = stringRedisTemplate.opsForValue().get(token);
+        return s == null ? false : true;
     }
 }
