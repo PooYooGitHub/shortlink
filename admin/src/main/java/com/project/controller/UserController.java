@@ -64,7 +64,7 @@ public class UserController {
      * 检查用户是否登录
      */
     @GetMapping("/api/short-link/admin/v1/user/check-login")
-    public Result<Boolean> checkLogin(@RequestParam("token") String token) {
-        return Results.success(userService.checkLogin(token));
+    public Result<Boolean> checkLogin(@RequestParam("token") String token,@RequestParam("username") String username) {
+        return Results.success(userService.checkLogin(token,username));
     }
 }

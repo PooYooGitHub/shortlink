@@ -2,7 +2,8 @@ package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
-import com.alibaba.fastjson2.JSON;
+import cn.hutool.core.util.BooleanUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.TimeUnit;
 
 import static com.project.common.constant.RedisCacheConstant.LOCK_USER_REGISTER_KEY;
+import static com.project.common.constant.RedisCacheConstant.USER_LOGIN_KEY;
 import static com.project.common.enums.UserErrorCode.USER_NUll;
 
 /**
@@ -104,10 +106,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         if (userDO == null) {
             throw new ClientException("用户名或密码错误");
         }
+
+        String username = userDO.getUsername();
+        if (stringRedisTemplate.hasKey(USER_LOGIN_KEY+username)){
+            throw new ClientException("用户已经登录,请先退出登录");
+        }
         String uuid = UUID.randomUUID().toString();
 
-        //将uuid存入redis
-        stringRedisTemplate.opsForValue().set(uuid, JSON.toJSONString(userDO),30L, TimeUnit.MINUTES);
+        stringRedisTemplate.opsForHash().put(USER_LOGIN_KEY+ username,uuid, JSONUtil.toJsonStr(userDO));
+        stringRedisTemplate.expire(USER_LOGIN_KEY+ username,30L, TimeUnit.MINUTES);
 
         return new UserLoginRespDTO(uuid);
 
@@ -115,8 +122,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     }
 
     @Override
-    public Boolean checkLogin(String token) {
-        String s = stringRedisTemplate.opsForValue().get(token);
-        return s == null ? false : true;
+    public Boolean checkLogin(String token,String username) {
+        Boolean aBoolean = stringRedisTemplate.opsForHash().hasKey(USER_LOGIN_KEY+ username,token);
+        return BooleanUtil.isTrue(aBoolean);
     }
 }
