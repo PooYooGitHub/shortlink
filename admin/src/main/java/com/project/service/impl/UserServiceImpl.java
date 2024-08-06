@@ -126,4 +126,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         Boolean aBoolean = stringRedisTemplate.opsForHash().hasKey(USER_LOGIN_KEY+ username,token);
         return BooleanUtil.isTrue(aBoolean);
     }
+
+    @Override
+    public void logout(String token, String username) {
+        Long delete = stringRedisTemplate.opsForHash().delete(USER_LOGIN_KEY + username, token);
+        if (delete < 1) {
+            throw new ClientException("退出登录失败");
+        }
+        return ;
+    }
 }
