@@ -3,13 +3,11 @@ package com.project.controller;
 import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
 import com.project.dto.req.GroupAddReqDTO;
+import com.project.dto.req.GroupUpdateReqDTO;
 import com.project.dto.resp.GroupingRespDTO;
 import com.project.service.GroupService;
 import lombok.AllArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -36,5 +34,11 @@ public class GroupController {
     @GetMapping("/api/short-link/admin/v1/group")
     public Result<List<GroupingRespDTO>> queryGroup(){
         return Results.success(groupService.queryGroup());
+    }
+
+    @PutMapping("/api/short-link/admin/v1/group")
+    public Result<Void> updateGroup(@RequestBody GroupUpdateReqDTO groupUpdateReqDTO){
+        groupService.updateGroup(groupUpdateReqDTO);
+        return Results.success();
     }
 }

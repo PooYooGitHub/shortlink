@@ -2,12 +2,14 @@ package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.common.biz.user.UserContext;
 import com.project.dao.entity.GroupDO;
 import com.project.dao.mapper.GroupMapper;
 import com.project.dto.req.GroupAddReqDTO;
+import com.project.dto.req.GroupUpdateReqDTO;
 import com.project.dto.resp.GroupingRespDTO;
 import com.project.service.GroupService;
 import com.project.util.RandomStringGenerator;
@@ -52,5 +54,15 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         LambdaQueryWrapper<GroupDO> eq = Wrappers.lambdaQuery(GroupDO.class).eq(GroupDO::getDelFlag, 0).eq(GroupDO::getUsername, UserContext.getUsername()).eq(GroupDO::getSortOrder, 0);
         List<GroupDO> groupDOS = baseMapper.selectList(eq);
         return BeanUtil.copyToList(groupDOS, GroupingRespDTO.class);
+    }
+
+    @Override
+    public void updateGroup(GroupUpdateReqDTO requestParam) {
+        LambdaUpdateWrapper<GroupDO> eq = Wrappers.lambdaUpdate(GroupDO.class).
+                eq(GroupDO::getUsername, UserContext.getUsername()).
+                eq(GroupDO::getGid, requestParam.getGid()).
+                eq(GroupDO::getDelFlag, 0);
+        GroupDO result = GroupDO.builder().name(requestParam.getName()).build();
+        baseMapper.update(result,eq);
     }
 }
