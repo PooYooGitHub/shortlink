@@ -2,6 +2,7 @@ package com.project.controller;
 
 import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
+import com.project.dto.req.UserDeleteRequestDTO;
 import com.project.dto.req.UserLoginReqDTO;
 import com.project.dto.req.UserRegisterReqDTO;
 import com.project.dto.req.UserUpdateReqDTO;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+
     /**
      * 根据用户名获取用户信息
      */
@@ -38,7 +40,7 @@ public class UserController {
      * 注册用户
      */
     @PostMapping("/api/short-link/admin/v1/user")
-    public Result<Void> register(@RequestBody UserRegisterReqDTO requestParam){
+    public Result<Void> register(@RequestBody UserRegisterReqDTO requestParam) {
         userService.register(requestParam);
         return Results.success();
     }
@@ -47,7 +49,7 @@ public class UserController {
      * 修改用户信息
      */
     @PutMapping("/api/short-link/admin/v1/user")
-    public Result<Void> update(@RequestBody UserUpdateReqDTO requestParam){
+    public Result<Void> update(@RequestBody UserUpdateReqDTO requestParam) {
         userService.update(requestParam);
         return Results.success();
     }
@@ -64,16 +66,23 @@ public class UserController {
      * 检查用户是否登录
      */
     @GetMapping("/api/short-link/admin/v1/user/check-login")
-    public Result<Boolean> checkLogin(@RequestParam("token") String token,@RequestParam("username") String username) {
-        return Results.success(userService.checkLogin(token,username));
+    public Result<Boolean> checkLogin(@RequestParam("token") String token, @RequestParam("username") String username) {
+        return Results.success(userService.checkLogin(token, username));
     }
+
     /**
      * 退出登录功能
      */
     @DeleteMapping("/api/short-link/admin/v1/user/logout")
-    public Result<Void> logout(@RequestParam("token") String token,@RequestParam("username") String username){
-        userService.logout(token,username);
+    public Result<Void> logout(@RequestParam("token") String token, @RequestParam("username") String username) {
+        userService.logout(token, username);
         return Results.success();
 
+    }
+
+    @DeleteMapping("/api/short-link/admin/v1/user/delete-account")
+    public Result<Void> deleteAccount(@RequestBody UserDeleteRequestDTO requestParam) {
+        userService.deleteAccount(requestParam);
+        return Results.success();
     }
 }

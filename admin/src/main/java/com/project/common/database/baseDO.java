@@ -24,4 +24,9 @@ public class baseDO {
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private int delFlag;
+
+    /**
+     * 注销时间
+     */
+    private Date delTime;
 }

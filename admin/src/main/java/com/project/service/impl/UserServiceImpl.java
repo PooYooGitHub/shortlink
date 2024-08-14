@@ -1,6 +1,7 @@
 package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateTime;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.json.JSONUtil;
@@ -13,6 +14,7 @@ import com.project.common.convention.exception.ClientException;
 import com.project.common.enums.UserErrorCode;
 import com.project.dao.entity.UserDO;
 import com.project.dao.mapper.UserMapper;
+import com.project.dto.req.UserDeleteRequestDTO;
 import com.project.dto.req.UserLoginReqDTO;
 import com.project.dto.req.UserRegisterReqDTO;
 import com.project.dto.req.UserUpdateReqDTO;
@@ -134,5 +136,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
             throw new ClientException("退出登录失败");
         }
         return ;
+    }
+
+    @Override
+    public void deleteAccount(UserDeleteRequestDTO requestParam) {
+        LambdaQueryWrapper<UserDO> eq = Wrappers.lambdaQuery(UserDO.class).
+                eq(UserDO::getUsername, requestParam.getUsername()).
+                eq(UserDO::getDelFlag, 0);
+        UserDO userDO = baseMapper.selectOne(eq);
+        if (userDO == null) {
+            throw new ClientException("用户不存在");
+        }else {
+            userDO.setDelFlag(1);
+            userDO.setDelTime(DateTime.now());
+            baseMapper.update(userDO, Wrappers.lambdaUpdate(UserDO.class).eq(UserDO::getUsername, requestParam.getUsername()));
+            //布隆过滤器删除不了元素
+        }
     }
 }

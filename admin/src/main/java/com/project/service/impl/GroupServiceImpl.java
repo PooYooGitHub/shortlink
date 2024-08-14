@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.project.common.biz.user.UserContext;
 import com.project.dao.entity.GroupDO;
 import com.project.dao.mapper.GroupMapper;
 import com.project.dto.req.GroupAddReqDTO;
@@ -27,7 +28,12 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         do {
             gid = RandomStringGenerator.generateSixCharacterRandomString();
         }while (hasGid(gid));
-        GroupDO result = GroupDO.builder().gid(gid).name(requestParam.getName()).sortOrder(0).build();
+        GroupDO result = GroupDO.builder().
+                gid(gid).
+                name(requestParam.getName()).
+                sortOrder(0).
+                username(UserContext.getUsername()).
+                build();
         baseMapper.insert(result);
 
 
@@ -43,7 +49,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
 
     @Override
     public List<GroupingRespDTO> queryGroup() {
-        LambdaQueryWrapper<GroupDO> eq = Wrappers.lambdaQuery(GroupDO.class).eq(GroupDO::getDelFlag, 0).isNull(GroupDO::getUsername).eq(GroupDO::getSortOrder, 0);
+        LambdaQueryWrapper<GroupDO> eq = Wrappers.lambdaQuery(GroupDO.class).eq(GroupDO::getDelFlag, 0).eq(GroupDO::getUsername, UserContext.getUsername()).eq(GroupDO::getSortOrder, 0);
         List<GroupDO> groupDOS = baseMapper.selectList(eq);
         return BeanUtil.copyToList(groupDOS, GroupingRespDTO.class);
     }

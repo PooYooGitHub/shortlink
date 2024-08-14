@@ -2,6 +2,7 @@ package com.project.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.project.dao.entity.UserDO;
+import com.project.dto.req.UserDeleteRequestDTO;
 import com.project.dto.req.UserLoginReqDTO;
 import com.project.dto.req.UserRegisterReqDTO;
 import com.project.dto.req.UserUpdateReqDTO;
@@ -59,4 +60,10 @@ public interface UserService extends IService<UserDO> {
      * @param username
      */
     void logout(String token, String username);
+
+    /**
+     * 用户注销
+     * @param requestParam
+     */
+    void deleteAccount(UserDeleteRequestDTO requestParam);
 }
