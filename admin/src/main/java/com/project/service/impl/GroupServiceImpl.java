@@ -11,6 +11,7 @@ import com.project.common.convention.exception.ClientException;
 import com.project.dao.entity.GroupDO;
 import com.project.dao.mapper.GroupMapper;
 import com.project.dto.req.GroupAddReqDTO;
+import com.project.dto.req.GroupSortReqDTO;
 import com.project.dto.req.GroupUpdateReqDTO;
 import com.project.dto.resp.GroupingRespDTO;
 import com.project.service.GroupService;
@@ -81,5 +82,18 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
             throw new ClientException("分组删除失败");
         }
 
+    }
+
+    @Override
+    public void sortGroup(List<GroupSortReqDTO> requestParam) {
+        for (GroupSortReqDTO groupSortReqDTO : requestParam) {
+            LambdaUpdateWrapper<GroupDO> eq = Wrappers.lambdaUpdate(GroupDO.class)
+                    .eq(GroupDO::getGid, groupSortReqDTO.getGid())
+                    .eq(GroupDO::getUsername, UserContext.getUsername())
+                    .eq(GroupDO::getDelFlag, 0);
+            GroupDO groupDO = new GroupDO();
+            groupDO.setSortOrder(groupSortReqDTO.getSortOrder());
+            baseMapper.update(groupDO, eq);
+        }
     }
 }

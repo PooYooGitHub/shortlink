@@ -3,6 +3,7 @@ package com.project.controller;
 import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
 import com.project.dto.req.GroupAddReqDTO;
+import com.project.dto.req.GroupSortReqDTO;
 import com.project.dto.req.GroupUpdateReqDTO;
 import com.project.dto.resp.GroupingRespDTO;
 import com.project.service.GroupService;
@@ -38,12 +39,10 @@ public class GroupController {
 
     /**
      * 修改分组名
-     * @param groupUpdateReqDTO
-     * @return
      */
     @PutMapping("/api/short-link/admin/v1/group")
-    public Result<Void> updateGroup(@RequestBody GroupUpdateReqDTO groupUpdateReqDTO){
-        groupService.updateGroup(groupUpdateReqDTO);
+    public Result<Void> updateGroup(@RequestBody GroupUpdateReqDTO requestParam){
+        groupService.updateGroup(requestParam);
         return Results.success();
     }
 
@@ -54,5 +53,15 @@ public class GroupController {
     public Result<Void> deleteGroup(@RequestParam String gid) {
         groupService.deleteGroup(gid);
         return Results.success();
+    }
+
+    /**
+     * 给分组排序
+     */
+    @PostMapping("/api/short-link/admin/v1/group/sort")
+    public Result<Void> sortGroup(@RequestBody List<GroupSortReqDTO> requestParam) {
+        groupService.sortGroup(requestParam);
+        return Results.success();
+
     }
 }

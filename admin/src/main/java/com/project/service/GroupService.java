@@ -3,6 +3,7 @@ package com.project.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.project.dao.entity.GroupDO;
 import com.project.dto.req.GroupAddReqDTO;
+import com.project.dto.req.GroupSortReqDTO;
 import com.project.dto.req.GroupUpdateReqDTO;
 import com.project.dto.resp.GroupingRespDTO;
 
@@ -27,13 +28,20 @@ public interface GroupService extends IService<GroupDO> {
 
     /**
      * 根据分组gid修改分组名称
-     * @param groupUpdateReqDTO
+     * @param requestParam
      */
-    void updateGroup(GroupUpdateReqDTO groupUpdateReqDTO);
+    void updateGroup(GroupUpdateReqDTO requestParam);
 
     /**
      * 根据gid软删除分组
      * @param gid 分组标识
      */
     void deleteGroup(String gid);
+
+    /**
+     * 分組排序
+     * @param requestParam
+     */
+
+    void sortGroup(List<GroupSortReqDTO> requestParam);
 }
