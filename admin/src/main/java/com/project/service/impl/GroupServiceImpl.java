@@ -1,6 +1,7 @@
 package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -74,6 +75,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 .eq(GroupDO::getDelFlag, 0);
         GroupDO groupDO = new GroupDO();
         groupDO.setDelFlag(1);
+        groupDO.setDelTime(DateTime.now());
         int update = baseMapper.update(groupDO, eq);
         if (update < 1) {
             throw new ClientException("分组删除失败");
