@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.common.biz.user.UserContext;
+import com.project.common.convention.exception.ClientException;
 import com.project.dao.entity.GroupDO;
 import com.project.dao.mapper.GroupMapper;
 import com.project.dto.req.GroupAddReqDTO;
@@ -64,5 +65,19 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 eq(GroupDO::getDelFlag, 0);
         GroupDO result = GroupDO.builder().name(requestParam.getName()).build();
         baseMapper.update(result,eq);
+    }
+
+    @Override
+    public void deleteGroup(String gid) {
+        LambdaUpdateWrapper<GroupDO> eq = Wrappers.lambdaUpdate(GroupDO.class)
+                .eq(GroupDO::getGid, gid)
+                .eq(GroupDO::getDelFlag, 0);
+        GroupDO groupDO = new GroupDO();
+        groupDO.setDelFlag(1);
+        int update = baseMapper.update(groupDO, eq);
+        if (update < 1) {
+            throw new ClientException("分组删除失败");
+        }
+
     }
 }
