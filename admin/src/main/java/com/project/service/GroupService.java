@@ -13,10 +13,22 @@ import java.util.List;
  */
 public interface GroupService extends IService<GroupDO> {
 
+    /**
+     * 添加分组
+     * @param requestParam
+     */
     void addGroup(GroupAddReqDTO requestParam);
 
+    /**
+     * 查询用户分组
+     * @return
+     */
     List<GroupingRespDTO> queryGroup();
 
+    /**
+     * 根据分组gid修改分组名称
+     * @param groupUpdateReqDTO
+     */
     void updateGroup(GroupUpdateReqDTO groupUpdateReqDTO);
 
 }

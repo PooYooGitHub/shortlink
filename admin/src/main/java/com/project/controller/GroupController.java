@@ -36,6 +36,11 @@ public class GroupController {
         return Results.success(groupService.queryGroup());
     }
 
+    /**
+     * 修改分组名
+     * @param groupUpdateReqDTO
+     * @return
+     */
     @PutMapping("/api/short-link/admin/v1/group")
     public Result<Void> updateGroup(@RequestBody GroupUpdateReqDTO groupUpdateReqDTO){
         groupService.updateGroup(groupUpdateReqDTO);
