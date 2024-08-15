@@ -80,6 +80,9 @@ public class UserController {
 
     }
 
+    /**
+     * 删除（注销）用户
+     */
     @DeleteMapping("/api/short-link/admin/v1/user/delete-account")
     public Result<Void> deleteAccount(@RequestBody UserDeleteRequestDTO requestParam) {
         userService.deleteAccount(requestParam);
