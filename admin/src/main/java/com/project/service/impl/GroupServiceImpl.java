@@ -23,7 +23,6 @@ import java.util.List;
 /*
     * 短链接分租接口实现层
  */
-//todo ：这个添加有问题，
 @Service
 public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implements GroupService{
 
@@ -39,7 +38,12 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 sortOrder(0).
                 username(UserContext.getUsername()).
                 build();
-        baseMapper.insert(result);
+
+        try {
+            int insert = baseMapper.insert(result);
+        } catch (Exception e) {
+            throw new ClientException("分组名已存在");
+        }
 
 
     }
@@ -52,9 +56,13 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         return groupDO!=null;
     }
 
+// TODO：完善查询数据的顺序
     @Override
     public List<GroupingRespDTO> queryGroup() {
-        LambdaQueryWrapper<GroupDO> eq = Wrappers.lambdaQuery(GroupDO.class).eq(GroupDO::getDelFlag, 0).eq(GroupDO::getUsername, UserContext.getUsername()).eq(GroupDO::getSortOrder, 0);
+        LambdaQueryWrapper<GroupDO> eq = Wrappers.lambdaQuery(GroupDO.class)
+                .eq(GroupDO::getDelFlag, 0)
+                .eq(GroupDO::getUsername, UserContext.getUsername());
+//                .eq(GroupDO::getSortOrder, 0);
         List<GroupDO> groupDOS = baseMapper.selectList(eq);
         return BeanUtil.copyToList(groupDOS, GroupingRespDTO.class);
     }
