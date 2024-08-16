@@ -20,7 +20,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     @Override
     public ShortLinkCreateRespDTO create(ShortLinkCreateReqDTO requestParam) {
 
-        //TODO: 生成短链接使用的是hash算法，可能会存在hash冲突，需要处理
+        // 生成短链接使用的是hash算法，可能会存在hash冲突，需要处理
         //将 新生成的url存入布隆过滤器,好像可以解决
 
         String shortUri ;
