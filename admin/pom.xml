@@ -64,6 +64,23 @@
             <artifactId>fastjson2</artifactId>
         </dependency>
     </dependencies>
+<!--    项目打包插件-->
+<!--    虽然报红,但是起作用了-->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 
 </project>
