@@ -14,6 +14,11 @@ import com.project.remote.dto.resp.ShortLinkPageRespDTO;
 import java.util.HashMap;
 
 public interface ShortLinkRemoteService {
+    /**
+     * 创建短链接
+     * @param requestParam
+     * @return
+     */
     default Result<ShortLinkCreateRespDTO> createShortLink(ShortLinkCreateReqDTO requestParam) {
         //使用http的方法来远程调用
         String resp = HttpUtil.
@@ -22,6 +27,12 @@ public interface ShortLinkRemoteService {
         });
 
     }
+
+    /**
+     * 分页查询短链接
+     * @param requestParam
+     * @return
+     */
     default Result<IPage<ShortLinkPageRespDTO>> queryPage(ShortLinkPageReqDTO requestParam) {
         HashMap<String, Object> hashMap = new HashMap<>();
         hashMap.put("gid", requestParam.getGid());
