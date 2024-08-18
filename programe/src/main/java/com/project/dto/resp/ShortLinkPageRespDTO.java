@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.util.Date;
-
+/**
+ * 短链接分页响应实体
+ */
 @Data
 public class ShortLinkPageRespDTO {
     /**
