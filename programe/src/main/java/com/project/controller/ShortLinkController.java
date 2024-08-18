@@ -23,7 +23,7 @@ public class ShortLinkController {
     /**
      * 创建短链接
      */
-    @PostMapping("/api/short-link/admin/v1/create")
+    @PostMapping("/api/short-link/v1/create")
     public Result<ShortLinkCreateRespDTO> create(@RequestBody ShortLinkCreateReqDTO requestParam){
         return Results.success(shortLinkService.create(requestParam));
     }
@@ -31,7 +31,7 @@ public class ShortLinkController {
     /**
      * 分页查询短链接
      */
-    @GetMapping("/api/short-link/admin/v1/page")
+    @GetMapping("/api/short-link/v1/page")
     public Result<IPage<ShortLinkPageRespDTO>> queryPage(@ModelAttribute ShortLinkPageReqDTO requestParam){
         return Results.success(shortLinkService.queryPage(requestParam));
     }
