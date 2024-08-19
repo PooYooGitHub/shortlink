@@ -24,7 +24,7 @@ public class baseDO {
      * 删除标识 0:未删除 1已删除
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
-    private int delFlag;
+    private Integer delFlag;
 
     /**
      * 注销时间
