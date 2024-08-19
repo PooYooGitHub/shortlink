@@ -58,7 +58,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
 
 // TODO：完善查询数据的顺序
     @Override
-    public List<GroupingRespDTO> queryGroup() {
+    public List<GroupingRespDTO> listGroup() {
         LambdaQueryWrapper<GroupDO> eq = Wrappers.lambdaQuery(GroupDO.class)
                 .eq(GroupDO::getDelFlag, 0)
                 .eq(GroupDO::getUsername, UserContext.getUsername());

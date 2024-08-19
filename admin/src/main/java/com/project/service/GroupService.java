@@ -24,7 +24,7 @@ public interface GroupService extends IService<GroupDO> {
      * 查询用户分组
      * @return
      */
-    List<GroupingRespDTO> queryGroup();
+    List<GroupingRespDTO> listGroup();
 
     /**
      * 根据分组gid修改分组名称
