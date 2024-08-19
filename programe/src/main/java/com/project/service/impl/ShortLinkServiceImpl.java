@@ -2,6 +2,7 @@ package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -10,6 +11,7 @@ import com.project.dao.entity.ShortLinkDO;
 import com.project.dao.mapper.ShortLinkMapper;
 import com.project.dto.req.ShortLinkCreateReqDTO;
 import com.project.dto.req.ShortLinkPageReqDTO;
+import com.project.dto.resp.GroupShortLinkCountRespDTO;
 import com.project.dto.resp.ShortLinkCreateRespDTO;
 import com.project.dto.resp.ShortLinkPageRespDTO;
 import com.project.service.ShortLinkService;
@@ -17,6 +19,13 @@ import com.project.util.HashUtil;
 import lombok.AllArgsConstructor;
 import org.redisson.api.RBloomFilter;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 短链接接口实现层
+ */
 
 @Service
 @AllArgsConstructor
@@ -29,12 +38,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         // 生成短链接使用的是hash算法，可能会存在hash冲突，需要处理
         //将 新生成的url存入布隆过滤器,好像可以解决
 
-        String shortUri ;
-        String shortUrl ;
+        String shortUri;
+        String shortUrl;
         do {
-            shortUri = HashUtil.hashToBase62(requestParam.getOriginUrl()+System.currentTimeMillis());
+            shortUri = HashUtil.hashToBase62(requestParam.getOriginUrl() + System.currentTimeMillis());
             shortUrl = requestParam.getDomain() + "/" + shortUri;
-        }while (shortLinkCachePenetrationBloomFilter.contains(shortUrl));
+        } while (shortLinkCachePenetrationBloomFilter.contains(shortUrl));
 
         ShortLinkDO shortLinkDO = BeanUtil.toBean(requestParam, ShortLinkDO.class);
         shortLinkDO.setShortUri(shortUri);
@@ -59,9 +68,22 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .eq(ShortLinkDO::getEnableStatus, 0)
                 .orderByDesc(ShortLinkDO::getCreateTime);
         Page<ShortLinkDO> shortLinkDOPage = baseMapper.selectPage(requestParam, eq);
-        return shortLinkDOPage.convert(each-> BeanUtil.toBean(each,ShortLinkPageRespDTO.class));
+        return shortLinkDOPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
 
     }
 
+    @Override
+    public List<GroupShortLinkCountRespDTO> countShortLinkInGroup(List<String> gids) {
+        QueryWrapper<ShortLinkDO> eq = Wrappers
+                .query(new ShortLinkDO())
+                .select("gid,count(*) as shortLinkCount")
+                .in("gid", gids)
+                .eq("enable_status", 0)
+                .groupBy("gid");
+        List<Map<String,Object>> list = baseMapper.selectMaps(eq);
+        return BeanUtil.copyToList(list, GroupShortLinkCountRespDTO.class);
+
+
+    }
 
 }
