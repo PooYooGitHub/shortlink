@@ -20,9 +20,9 @@ public class GroupingRespDTO {
     private String name;
 
     /**
-     * 创建分组用户名
+     * 分组下短链接的数量
      */
-    private String username;
+    private Integer shortLinkCount;
 
     /**
      * 分组排序

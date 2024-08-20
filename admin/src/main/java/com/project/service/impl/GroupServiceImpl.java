@@ -8,16 +8,20 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.common.biz.user.UserContext;
 import com.project.common.convention.exception.ClientException;
+import com.project.common.convention.result.Result;
 import com.project.dao.entity.GroupDO;
 import com.project.dao.mapper.GroupMapper;
 import com.project.dto.req.GroupAddReqDTO;
 import com.project.dto.req.GroupSortReqDTO;
 import com.project.dto.req.GroupUpdateReqDTO;
 import com.project.dto.resp.GroupingRespDTO;
+import com.project.remote.dto.ShortLinkRemoteService;
+import com.project.remote.dto.resp.GroupShortLinkCountRespDTO;
 import com.project.service.GroupService;
 import com.project.util.RandomStringGenerator;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /*
@@ -25,6 +29,10 @@ import java.util.List;
  */
 @Service
 public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implements GroupService{
+
+
+    private final ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
+    };
 
     @Override
     public void addGroup(GroupAddReqDTO requestParam) {
@@ -62,9 +70,28 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 .eq(GroupDO::getDelFlag, 0)
                 .eq(GroupDO::getUsername, UserContext.getUsername())
                 .orderByDesc(GroupDO::getSortOrder,GroupDO::getUpdateTime);
-
         List<GroupDO> groupDOS = baseMapper.selectList(eq);
-        return BeanUtil.copyToList(groupDOS, GroupingRespDTO.class);
+
+        ArrayList<String> list = new ArrayList<>();
+        //向结果中添加短链接数量
+        groupDOS.forEach(groupDO -> {
+            list.add(groupDO.getGid());
+        });
+        Result<List<GroupShortLinkCountRespDTO>> groupShortLinkCountRespDTOResult = shortLinkRemoteService.countShortLinkInGroup(list);
+
+        List<GroupShortLinkCountRespDTO> data = groupShortLinkCountRespDTOResult.getData();
+
+        List<GroupingRespDTO> result = BeanUtil.copyToList(groupDOS, GroupingRespDTO.class);
+
+        result.forEach(groupingRespDTO -> {
+            data.forEach(groupShortLinkCountRespDTO -> {
+                if (groupingRespDTO.getGid().equals(groupShortLinkCountRespDTO.getGid())) {
+                    groupingRespDTO.setShortLinkCount(groupShortLinkCountRespDTO.getShortLinkCount());
+                }
+            });
+        });
+        return result;
+
     }
 
     @Override

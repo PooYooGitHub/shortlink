@@ -8,10 +8,16 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.common.convention.result.Result;
 import com.project.remote.dto.req.ShortLinkCreateReqDTO;
 import com.project.remote.dto.req.ShortLinkPageReqDTO;
+import com.project.remote.dto.resp.GroupShortLinkCountRespDTO;
 import com.project.remote.dto.resp.ShortLinkCreateRespDTO;
 import com.project.remote.dto.resp.ShortLinkPageRespDTO;
 
 import java.util.HashMap;
+import java.util.List;
+
+/**
+ * 远程调用短链接服务
+ */
 
 public interface ShortLinkRemoteService {
     /**
@@ -42,5 +48,20 @@ public interface ShortLinkRemoteService {
         return JSON.parseObject(resp, new TypeReference<Result<IPage<ShortLinkPageRespDTO>>>() {
         });
     }
+
+    /**
+     * 查询分组下短链接的数量
+     * @param gids 需要查询的分组标识gid
+     * @return
+     */
+    default Result<List<GroupShortLinkCountRespDTO>> countShortLinkInGroup(List<String> gids) {
+        HashMap<String, Object> hashMap = new HashMap<>();
+        hashMap.put("gid", gids);
+        String resp = HttpUtil.get("http://127.0.0.1:8001/api/short-link/v1/count", hashMap);
+        return JSON.parseObject(resp, new TypeReference<Result<List<GroupShortLinkCountRespDTO>>>() {
+        });
+    }
+
+
 
 }

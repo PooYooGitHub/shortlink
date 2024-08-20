@@ -32,6 +32,7 @@ import java.util.Map;
 public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO> implements ShortLinkService {
     private final RBloomFilter<String> shortLinkCachePenetrationBloomFilter;
 
+
     @Override
     public ShortLinkCreateRespDTO create(ShortLinkCreateReqDTO requestParam) {
 
@@ -48,6 +49,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         ShortLinkDO shortLinkDO = BeanUtil.toBean(requestParam, ShortLinkDO.class);
         shortLinkDO.setShortUri(shortUri);
         shortLinkDO.setFullShortUrl(shortUrl);
+        shortLinkDO.setEnableStatus(0);
 
         baseMapper.insert(shortLinkDO);
         shortLinkCachePenetrationBloomFilter.add(shortUrl);
@@ -80,6 +82,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .in("gid", gids)
                 .eq("enable_status", 0)
                 .groupBy("gid");
+        //groupByGID不能少,不然就是查的所有
         List<Map<String,Object>> list = baseMapper.selectMaps(eq);
         return BeanUtil.copyToList(list, GroupShortLinkCountRespDTO.class);
 
