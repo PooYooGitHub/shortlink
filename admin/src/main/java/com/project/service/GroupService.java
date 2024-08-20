@@ -16,10 +16,16 @@ public interface GroupService extends IService<GroupDO> {
 
     /**
      * 添加分组
-     * @param requestParam
+     * @param requestParam 分组名称
      */
     void addGroup(GroupAddReqDTO requestParam);
 
+    /**
+     * 添加分组
+     * @param requestParam 分组名称
+     * @param username 用户名
+     */
+    void addGroup(GroupAddReqDTO requestParam, String username);
     /**
      * 查询用户分组
      * @return

@@ -34,17 +34,16 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
     private final ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
     };
 
-    @Override
-    public void addGroup(GroupAddReqDTO requestParam) {
+    public void addGroup(GroupAddReqDTO requestParam, String username) {
         String gid;
         do {
             gid = RandomStringGenerator.generateSixCharacterRandomString();
         }while (hasGid(gid));
         GroupDO result = GroupDO.builder().
                 gid(gid).
-                name(requestParam.getName()).
+                name(requestParam.getGroupName()).
                 sortOrder(0).
-                username(UserContext.getUsername()).
+                username(username).
                 build();
 
         try {
@@ -52,8 +51,11 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         } catch (Exception e) {
             throw new ClientException("分组名已存在");
         }
+    }
 
-
+    @Override
+    public void addGroup(GroupAddReqDTO requestParam) {
+       this.addGroup(requestParam,UserContext.getUsername());
     }
 
     private boolean hasGid(String gid) {

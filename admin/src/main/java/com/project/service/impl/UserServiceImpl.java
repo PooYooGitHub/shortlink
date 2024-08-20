@@ -14,12 +14,10 @@ import com.project.common.convention.exception.ClientException;
 import com.project.common.enums.UserErrorCode;
 import com.project.dao.entity.UserDO;
 import com.project.dao.mapper.UserMapper;
-import com.project.dto.req.UserDeleteRequestDTO;
-import com.project.dto.req.UserLoginReqDTO;
-import com.project.dto.req.UserRegisterReqDTO;
-import com.project.dto.req.UserUpdateReqDTO;
+import com.project.dto.req.*;
 import com.project.dto.resp.UserLoginRespDTO;
 import com.project.dto.resp.UserRespDTO;
+import com.project.service.GroupService;
 import com.project.service.UserService;
 import lombok.AllArgsConstructor;
 import org.redisson.api.RBloomFilter;
@@ -45,6 +43,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     private final RBloomFilter<String> userRegisterCachePenetrationBloomFilter;
     private final RedissonClient redissonClient;
     private final StringRedisTemplate stringRedisTemplate;
+    private final GroupService groupService;
 
     @Override
     public UserRespDTO getUserByUsername(String username) {
@@ -65,6 +64,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         return userRegisterCachePenetrationBloomFilter.contains(username);
     }
 
+
+
     @Override
     public void register(UserRegisterReqDTO requestParam) {
         String username = requestParam.getUsername();
@@ -80,6 +81,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                     throw new ClientException(UserErrorCode.USER_SAVE_ERROR);
                 }
                 userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
+
+                //添加默认分组
+                groupService.addGroup(new GroupAddReqDTO("默认分组"),username);
                 return ;
             }else
                 throw new ClientException(BaseErrorCode.USER_NAME_EXIST_ERROR);
