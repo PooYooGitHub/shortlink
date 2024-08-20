@@ -56,13 +56,13 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         return groupDO!=null;
     }
 
-// TODO：完善查询数据的顺序
     @Override
     public List<GroupingRespDTO> listGroup() {
         LambdaQueryWrapper<GroupDO> eq = Wrappers.lambdaQuery(GroupDO.class)
                 .eq(GroupDO::getDelFlag, 0)
-                .eq(GroupDO::getUsername, UserContext.getUsername());
-//                .eq(GroupDO::getSortOrder, 0);
+                .eq(GroupDO::getUsername, UserContext.getUsername())
+                .orderByDesc(GroupDO::getSortOrder,GroupDO::getUpdateTime);
+
         List<GroupDO> groupDOS = baseMapper.selectList(eq);
         return BeanUtil.copyToList(groupDOS, GroupingRespDTO.class);
     }
