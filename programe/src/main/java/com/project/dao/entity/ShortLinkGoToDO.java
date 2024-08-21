@@ -17,6 +17,6 @@ public class ShortLinkGoToDO {
     /**
      * 完整短链接
      */
-    private String shortUri;
+    private String shortUrl;
 
 }
