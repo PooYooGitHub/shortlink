@@ -1,10 +1,16 @@
 package com.project.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @TableName("t_link_goto")
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ShortLinkGoToDO {
     /**
      * id
