@@ -32,6 +32,7 @@ public class ShortLinkCreateReqDTO {
      * 有效期
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+
     private String validDate;
     /**
      * 有效期类型，0：永久有效 1：自定义

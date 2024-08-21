@@ -7,10 +7,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.project.common.convention.exception.ClientException;
 import com.project.dao.entity.ShortLinkDO;
 import com.project.dao.mapper.ShortLinkMapper;
 import com.project.dto.req.ShortLinkCreateReqDTO;
 import com.project.dto.req.ShortLinkPageReqDTO;
+import com.project.dto.req.ShortLinkUpdateReqDTO;
 import com.project.dto.resp.GroupShortLinkCountRespDTO;
 import com.project.dto.resp.ShortLinkCreateRespDTO;
 import com.project.dto.resp.ShortLinkPageRespDTO;
@@ -87,6 +89,27 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         return BeanUtil.copyToList(list, GroupShortLinkCountRespDTO.class);
 
 
+    }
+
+    @Override
+    public void updateGroup(ShortLinkUpdateReqDTO requestParam) {
+        LambdaQueryWrapper<ShortLinkDO> eq = Wrappers.lambdaQuery(ShortLinkDO.class)
+                .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
+                .eq(ShortLinkDO::getGid, requestParam.getOriginGid())
+                .eq(ShortLinkDO::getEnableStatus, 0)
+                .eq(ShortLinkDO::getDelFlag, 0);
+        ShortLinkDO shortLinkDO = baseMapper.selectOne(eq);
+        if (shortLinkDO == null) {
+            throw new ClientException("短链接不存在");
+        }
+        //由于可能要修改分组，而分组gid是t_link的分片键，所以只能先删除再插入
+        baseMapper.deleteById(shortLinkDO.getId());
+        shortLinkDO.setGid(requestParam.getGid());
+        shortLinkDO.setDescribe(requestParam.getDescribe());
+        shortLinkDO.setValidDateType(requestParam.getValidDateType());
+        shortLinkDO.setValidDate(requestParam.getValidDate());
+        shortLinkDO.setOriginUrl(requestParam.getOriginUrl());
+        baseMapper.insert(shortLinkDO);
     }
 
 }
