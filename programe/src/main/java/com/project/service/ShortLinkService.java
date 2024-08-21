@@ -47,5 +47,11 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      */
     void updateGroup(ShortLinkUpdateReqDTO requestParam);
 
+    /**
+     * 短链接跳转功能
+     * @param shortUri 短链接uri
+     * @param request 请求
+     * @param response 响应
+     */
     void shortLinkRedirect(String shortUri, ServletRequest request, ServletResponse response) ;
 }
