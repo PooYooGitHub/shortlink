@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static com.project.common.constant.RedisKeyConstant.GO_TO_IS_NULL_SHORT_LINK_KEY;
 import static com.project.common.constant.RedisKeyConstant.GO_TO_SHORT_LINK_KEY;
 
 /**
@@ -76,7 +77,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         //将短链接和gid的对应关系存入goto表
         ShortLinkGoToMapper.insert(ShortLinkGoToDO.builder().shortUrl(shortUrl).gid(requestParam.getGid()).build());
         //将短链接和gid存入redis，方便下次跳转，不用查询数据库
-        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), requestParam.getOriginUrl(),30, TimeUnit.DAYS);
+        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), requestParam.getOriginUrl(), 30, TimeUnit.DAYS);
 
         return ShortLinkCreateRespDTO
                 .builder().
@@ -106,7 +107,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .eq("enable_status", 0)
                 .groupBy("gid");
         //groupByGID不能少,不然就是查的所有
-        List<Map<String,Object>> list = baseMapper.selectMaps(eq);
+        List<Map<String, Object>> list = baseMapper.selectMaps(eq);
         return BeanUtil.copyToList(list, GroupShortLinkCountRespDTO.class);
 
 
@@ -141,33 +142,79 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             LambdaQueryWrapper<ShortLinkGoToDO> eq1 = Wrappers.lambdaQuery(ShortLinkGoToDO.class)
                     .eq(ShortLinkGoToDO::getShortUrl, shortLinkDO.getFullShortUrl());
             ShortLinkGoToMapper.update(shortLinkGoToDO, eq1);
-        }else {
+        } else {
             //这里由于gid是分片键，更新的实体不能携带gid，所以要先将实体gid设置为null，然后再更新
             shortLinkDO.setGid(null);
             baseMapper.updateById(shortLinkDO);
         }
         //更新redis中的短链接和原始链接的对应关系
-        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortLinkDO.getFullShortUrl()), requestParam.getOriginUrl(),30, TimeUnit.DAYS);
+        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortLinkDO.getFullShortUrl()), requestParam.getOriginUrl(), 30, TimeUnit.DAYS);
 
     }
 
     @Override
-    public void shortLinkRedirect(String shortUri, ServletRequest request, ServletResponse response)  {
+
+    /**
+     * 解决
+     *  缓存击穿：数据在缓存中不存在，但在数据库中存在
+     *  缓存穿透：数据在缓存和数据库中都不存在
+     *  的解决思路
+     * 首先查询
+     *  缓存：存放短链接与原始链接的对应关系，在创建短链接时创建，修改短链接时修改
+     * 如果缓存中存在，直接定向；不存在，准备查询数据库，将数据库的短链接加入缓存
+     * 这时要判断数据库中存不存在短链接
+     * 然后查询
+     *  布隆过滤器：存放短链接，在短链接创建的时候将短链接加入其中
+     * 如果布隆过滤器中不存在，说明一定不存在该短链接，返回404，并将不存在的短链接加入
+     *  短链接不存在缓存： key：不存在的短链接，value：”-“
+     * 如果布隆过滤其中存在短链接，说明数据库可能存在目标短链接
+     * 然后加锁                                     <<<<------------------------------------------------
+     * ------------双重判定                                                                        |
+     * 先查询短链接不存在缓存，如果里面有值，说明短链接在数据库中不存在，直接返回404                  |
+     * 然后查询缓存，如果缓存中存在。。。。。。                                                     |
+     * --------------                                                                            |
+     * 查询数据库，如果短链接存在，将短链接和原始链接加入缓存;如果不存在将短链接加入短链接不存在缓存---
+     *
+     *
+     *
+     *
+     * -----------问题-------------------
+     * 如果http://www.shyu.com/3GbK8q1在前面已经被加入短链接不存在缓存，同时缓存已经失效。
+     * 但是这时由用户生成了一个http://www.shyu.com/3GbK8q1的短链接，那这个短链接不就失效了？
+     * 解决方法： TODO：添加短链接时尝试删除`短链接不存在缓存`中的相关数据
+     */
+    public void shortLinkRedirect(String shortUri, ServletRequest request, ServletResponse response) {
         //由于短链接的分片键是gid，查询尽量用gid查询，不然就会查询所有的表，
         //所以这里我创建了一个新的表，用来存储短链接和gid的对应关系goto
-        String protocol= ((HttpServletRequest) request).getScheme();
-        String shortUrl = protocol+"://" +request.getServerName() + "/" + shortUri;
+        String protocol = ((HttpServletRequest) request).getScheme();
+        String shortUrl = protocol + "://" + request.getServerName() + "/" + shortUri;
         String originalUrl = stringRedisTemplate.opsForValue().get(String.format(GO_TO_SHORT_LINK_KEY, shortUrl));
         if (StringUtil.isBlank(originalUrl)) {
             //redis中没有短链接和原始链接的对应关系，查询数据库
+            //防止数据库中也没有数据，也就是缓存穿透问题，使用布隆过滤器+分布式锁
+            if (!shortLinkCachePenetrationBloomFilter.contains(shortUrl)) {
+                //说明数据库中一定没有该短链接
+                stringRedisTemplate.opsForValue().set(String.format(GO_TO_IS_NULL_SHORT_LINK_KEY, shortUrl), "-", 30, TimeUnit.DAYS);
+                ((HttpServletResponse) response).setStatus(404);
+                return;
+            }
+            //数据库中存在短链接，但是可能误判
+            if (StringUtil.isNotBlank(stringRedisTemplate.opsForValue().get(String.format(GO_TO_IS_NULL_SHORT_LINK_KEY, shortUrl)))){
+                ((HttpServletResponse) response).setStatus(404);
+                return;
+            }
             RLock lock = redissonClient.getLock(String.format("short-link_lock_go_to:%s", shortUrl));
 
             lock.lock();
             try {
+                if (StringUtil.isNotBlank(stringRedisTemplate.opsForValue().get(String.format(GO_TO_IS_NULL_SHORT_LINK_KEY, shortUrl)))){
+                    ((HttpServletResponse) response).setStatus(404);
+                    return;
+                }
                 originalUrl = stringRedisTemplate.opsForValue().get(String.format(GO_TO_SHORT_LINK_KEY, shortUrl));
-                if (StringUtil.isNotBlank(originalUrl)){
+                if (StringUtil.isNotBlank(originalUrl)) {
                     //如果在获取锁的过程中，其他线程已经获取到锁并且已经设置了短链接和原始链接的对应关系，那么直接跳转
-                    ((HttpServletResponse)response).sendRedirect(originalUrl);
+                    ((HttpServletResponse) response).sendRedirect(originalUrl);
                     return;
                 }
 
@@ -176,7 +223,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToMapper.selectOne(eq);
                 if (shortLinkGoToDO == null) {
                     //如果短链接不存在，返回404
-                    ((HttpServletResponse)response).setStatus(404);
+                    stringRedisTemplate.opsForValue().set(String.format(GO_TO_IS_NULL_SHORT_LINK_KEY, shortUrl), "-", 30, TimeUnit.DAYS);
+                    ((HttpServletResponse) response).setStatus(404);
                     return;
                 }
                 //如果短链接存在，重定向到原始链接
@@ -192,18 +240,18 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     return;
                 }
 
-                stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), shortLinkDO.getOriginUrl(),30, TimeUnit.DAYS);
+                stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), shortLinkDO.getOriginUrl(), 30, TimeUnit.DAYS);
                 originalUrl = shortLinkDO.getOriginUrl();
 
-            }catch (Exception e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
-            }finally {
+            } finally {
                 lock.unlock();
             }
         }
 
         try {
-            ((HttpServletResponse)response).sendRedirect(originalUrl);
+            ((HttpServletResponse) response).sendRedirect(originalUrl);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
