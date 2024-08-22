@@ -24,13 +24,20 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jodd.util.StringUtil;
 import lombok.AllArgsConstructor;
 import org.redisson.api.RBloomFilter;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static com.project.common.constant.RedisKeyConstant.GO_TO_SHORT_LINK_KEY;
 
 /**
  * 短链接接口实现层
@@ -41,9 +48,11 @@ import java.util.Map;
 public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO> implements ShortLinkService {
     private final RBloomFilter<String> shortLinkCachePenetrationBloomFilter;
     private final ShortLinkGoToMapper ShortLinkGoToMapper;
-
+    private final StringRedisTemplate stringRedisTemplate;
+    private final RedissonClient redissonClient;
 
     @Override
+    //TODO:这里没有校验分组名是否存在该用户里面
     public ShortLinkCreateRespDTO create(ShortLinkCreateReqDTO requestParam) {
 
         // 生成短链接使用的是hash算法，可能会存在hash冲突，需要处理
@@ -62,9 +71,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         shortLinkDO.setEnableStatus(0);
 
         baseMapper.insert(shortLinkDO);
+        //将新生成的短链接存入布隆过滤器,防止下次生成的短链接重复
         shortLinkCachePenetrationBloomFilter.add(shortUrl);
+        //将短链接和gid的对应关系存入goto表
         ShortLinkGoToMapper.insert(ShortLinkGoToDO.builder().shortUrl(shortUrl).gid(requestParam.getGid()).build());
-
+        //将短链接和gid存入redis，方便下次跳转，不用查询数据库
+        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), requestParam.getOriginUrl(),30, TimeUnit.DAYS);
 
         return ShortLinkCreateRespDTO
                 .builder().
@@ -101,6 +113,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     @Override
+    //TODO：这里更新遍历了所有表，是不对的
     public void updateGroup(ShortLinkUpdateReqDTO requestParam) {
         LambdaQueryWrapper<ShortLinkDO> eq = Wrappers.lambdaQuery(ShortLinkDO.class)
                 .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
@@ -133,6 +146,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             shortLinkDO.setGid(null);
             baseMapper.updateById(shortLinkDO);
         }
+        //更新redis中的短链接和原始链接的对应关系
+        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortLinkDO.getFullShortUrl()), requestParam.getOriginUrl(),30, TimeUnit.DAYS);
 
     }
 
@@ -141,33 +156,59 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         //由于短链接的分片键是gid，查询尽量用gid查询，不然就会查询所有的表，
         //所以这里我创建了一个新的表，用来存储短链接和gid的对应关系goto
         String protocol= ((HttpServletRequest) request).getScheme();
-        String shortUrl = protocol +request.getServerName() + "/" + shortUri;
-        LambdaQueryWrapper<ShortLinkGoToDO> eq = Wrappers.lambdaQuery(ShortLinkGoToDO.class)
-                .eq(ShortLinkGoToDO::getShortUrl, shortUrl);
-        ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToMapper.selectOne(eq);
-        if (shortLinkGoToDO == null) {
-            //如果短链接不存在，返回404
-            ((HttpServletResponse)response).setStatus(404);
-            return;
-        }
-        //如果短链接存在，重定向到原始链接
-        LambdaQueryWrapper<ShortLinkDO> eq1 = Wrappers.lambdaQuery(ShortLinkDO.class)
-                .eq(ShortLinkDO::getGid, shortLinkGoToDO.getGid())
-                .eq(ShortLinkDO::getFullShortUrl, shortUrl)
-                .eq(ShortLinkDO::getEnableStatus, 0)
-                .eq(ShortLinkDO::getDelFlag, 0);
-        ShortLinkDO shortLinkDO = baseMapper.selectOne(eq1);
-        if (shortLinkDO == null) {
-            //如果短链接不存在，返回404
-            ((HttpServletResponse) response).setStatus(404);
-            return;
+        String shortUrl = protocol+"://" +request.getServerName() + "/" + shortUri;
+        String originalUrl = stringRedisTemplate.opsForValue().get(String.format(GO_TO_SHORT_LINK_KEY, shortUrl));
+        if (StringUtil.isBlank(originalUrl)) {
+            //redis中没有短链接和原始链接的对应关系，查询数据库
+            RLock lock = redissonClient.getLock(String.format("short-link_lock_go_to:%s", shortUrl));
+
+            lock.lock();
+            try {
+                originalUrl = stringRedisTemplate.opsForValue().get(String.format(GO_TO_SHORT_LINK_KEY, shortUrl));
+                if (StringUtil.isNotBlank(originalUrl)){
+                    //如果在获取锁的过程中，其他线程已经获取到锁并且已经设置了短链接和原始链接的对应关系，那么直接跳转
+                    ((HttpServletResponse)response).sendRedirect(originalUrl);
+                    return;
+                }
+
+                LambdaQueryWrapper<ShortLinkGoToDO> eq = Wrappers.lambdaQuery(ShortLinkGoToDO.class)
+                        .eq(ShortLinkGoToDO::getShortUrl, shortUrl);
+                ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToMapper.selectOne(eq);
+                if (shortLinkGoToDO == null) {
+                    //如果短链接不存在，返回404
+                    ((HttpServletResponse)response).setStatus(404);
+                    return;
+                }
+                //如果短链接存在，重定向到原始链接
+                LambdaQueryWrapper<ShortLinkDO> eq1 = Wrappers.lambdaQuery(ShortLinkDO.class)
+                        .eq(ShortLinkDO::getGid, shortLinkGoToDO.getGid())
+                        .eq(ShortLinkDO::getFullShortUrl, shortUrl)
+                        .eq(ShortLinkDO::getEnableStatus, 0)
+                        .eq(ShortLinkDO::getDelFlag, 0);
+                ShortLinkDO shortLinkDO = baseMapper.selectOne(eq1);
+                if (shortLinkDO == null) {
+                    //如果短链接不存在，返回404
+                    ((HttpServletResponse) response).setStatus(404);
+                    return;
+                }
+
+                stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), shortLinkDO.getOriginUrl(),30, TimeUnit.DAYS);
+                originalUrl = shortLinkDO.getOriginUrl();
+
+            }catch (Exception e) {
+                throw new RuntimeException(e);
+            }finally {
+                lock.unlock();
+            }
         }
 
         try {
-            ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
+            ((HttpServletResponse)response).sendRedirect(originalUrl);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        return;
+
 
     }
 
