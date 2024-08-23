@@ -20,6 +20,7 @@ import com.project.dto.resp.ShortLinkCreateRespDTO;
 import com.project.dto.resp.ShortLinkPageRespDTO;
 import com.project.service.ShortLinkService;
 import com.project.util.HashUtil;
+import com.project.util.LinkUtil;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -76,8 +77,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         shortLinkCachePenetrationBloomFilter.add(shortUrl);
         //将短链接和gid的对应关系存入goto表
         ShortLinkGoToMapper.insert(ShortLinkGoToDO.builder().shortUrl(shortUrl).gid(requestParam.getGid()).build());
-        //将短链接和gid存入redis，方便下次跳转，不用查询数据库
-        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), requestParam.getOriginUrl(), 30, TimeUnit.DAYS);
+        //将短链接和gid存入redis，方便下次跳转，不用查询数据库,这个叫缓存预热，防止缓存击穿和缓存雪崩
+        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), requestParam.getOriginUrl(), LinkUtil.getShortLinkCacheTime(requestParam.getValidDate()), TimeUnit.MILLISECONDS);
 
         return ShortLinkCreateRespDTO
                 .builder().
@@ -86,6 +87,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 fullShortUrl(shortLinkDO.getFullShortUrl())
                 .build();
     }
+
 
     @Override
     public IPage<ShortLinkPageRespDTO> queryPage(ShortLinkPageReqDTO requestParam) {
@@ -114,7 +116,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     @Override
-    //TODO：这里更新遍历了所有表，是不对的
+    //TODO：数据库表的插入时间和更新时间与真实插入时间相差几个小时，需要修改
+    //TODO：validdatetype如果从1改为0，validdate的值不会改变，也就是改为永久有效时，还是存在过期时间
     public void updateGroup(ShortLinkUpdateReqDTO requestParam) {
         LambdaQueryWrapper<ShortLinkDO> eq = Wrappers.lambdaQuery(ShortLinkDO.class)
                 .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
@@ -133,7 +136,10 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         //由于可能要修改分组，而分组gid是t_link的分片键，所以只能先删除再插入
         if (!requestParam.getGid().equals(requestParam.getOriginGid())) {
             //说明分组发生了变化
-            baseMapper.deleteById(shortLinkDO.getId());
+            LambdaQueryWrapper<ShortLinkDO> eq2 = Wrappers.lambdaQuery(ShortLinkDO.class)
+                    .eq(ShortLinkDO::getGid, requestParam.getOriginGid())
+                    .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl());
+            baseMapper.delete(eq2);
             shortLinkDO.setGid(requestParam.getGid());
             baseMapper.insert(shortLinkDO);
             //更新短链接的goto表
@@ -143,12 +149,14 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .eq(ShortLinkGoToDO::getShortUrl, shortLinkDO.getFullShortUrl());
             ShortLinkGoToMapper.update(shortLinkGoToDO, eq1);
         } else {
-            //这里由于gid是分片键，更新的实体不能携带gid，所以要先将实体gid设置为null，然后再更新
-            shortLinkDO.setGid(null);
-            baseMapper.updateById(shortLinkDO);
+            //由于gid是分片键，更新时gid不能变，更新的实体不能携带gid
+            Wrappers.lambdaQuery(ShortLinkDO.class)
+                    .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
+                    .eq(ShortLinkDO::getGid, requestParam.getOriginGid());
+            baseMapper.update(shortLinkDO, eq);
         }
         //更新redis中的短链接和原始链接的对应关系
-        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortLinkDO.getFullShortUrl()), requestParam.getOriginUrl(), 30, TimeUnit.DAYS);
+        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortLinkDO.getFullShortUrl()), requestParam.getOriginUrl(), LinkUtil.getShortLinkCacheTime(requestParam.getValidDate()), TimeUnit.MILLISECONDS);
 
     }
 
@@ -176,7 +184,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
      * 查询数据库，如果短链接存在，将短链接和原始链接加入缓存;如果不存在将短链接加入短链接不存在缓存---
      *
      *
-     *
+     * TODO：如果短链接已经过了有效期，该怎么办呢，自动设置del_time吗？
      *
      * -----------问题-------------------
      * 如果http://www.shyu.com/3GbK8q1在前面已经被加入短链接不存在缓存，同时缓存已经失效。
@@ -240,7 +248,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     return;
                 }
 
-                stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), shortLinkDO.getOriginUrl(), 30, TimeUnit.DAYS);
+                stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), shortLinkDO.getOriginUrl(), LinkUtil.getShortLinkCacheTime(shortLinkDO.getValidDate()), TimeUnit.MILLISECONDS);
                 originalUrl = shortLinkDO.getOriginUrl();
 
             } catch (Exception e) {
