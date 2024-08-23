@@ -1,6 +1,7 @@
 package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -184,7 +185,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
      * 查询数据库，如果短链接存在，将短链接和原始链接加入缓存;如果不存在将短链接加入短链接不存在缓存---
      *
      *
-     * TODO：如果短链接已经过了有效期，该怎么办呢，自动设置del_time吗？
+     * TODO：用户删除短链接，但是数据库中是软删除，这时再访问缓存，这个短链接还是有效的,如何解决，？
+     *  删除短链接时删除缓存
      *
      * -----------问题-------------------
      * 如果http://www.shyu.com/3GbK8q1在前面已经被加入短链接不存在缓存，同时缓存已经失效。
@@ -247,7 +249,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     ((HttpServletResponse) response).setStatus(404);
                     return;
                 }
-
+                if (shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(DateTime.now())) {
+                    //短链接不是永久有效，并且已经过期
+                    ((HttpServletResponse) response).setStatus(404);
+                    return;
+                }
+                //是永久有效，并且没有过期
                 stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), shortLinkDO.getOriginUrl(), LinkUtil.getShortLinkCacheTime(shortLinkDO.getValidDate()), TimeUnit.MILLISECONDS);
                 originalUrl = shortLinkDO.getOriginUrl();
 
