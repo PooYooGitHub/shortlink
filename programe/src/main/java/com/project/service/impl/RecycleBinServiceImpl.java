@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
 
 import static com.project.common.constant.RedisKeyConstant.GO_TO_SHORT_LINK_KEY;
 
+/**
+ * 回收站服务实现层
+ */
 @Service
 @AllArgsConstructor
 public class RecycleBinServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO> implements RecycleBinService {

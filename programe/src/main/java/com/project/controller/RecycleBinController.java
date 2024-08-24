@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @AllArgsConstructor
+/**
+ * 回收站控制层
+ */
 public class RecycleBinController {
     private final RecycleBinService recycleBinService;
 

@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @AllArgsConstructor
+/**
+ * 网站标题控制器
+ */
 public class UrlTitleController {
     private final UrlTitleService urlTitleService;
 

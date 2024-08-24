@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-
+/**
+ * 获取网站标题接口实现层
+ */
 @Service
 public class UrlTitleServiceImpl implements UrlTitleService {
 

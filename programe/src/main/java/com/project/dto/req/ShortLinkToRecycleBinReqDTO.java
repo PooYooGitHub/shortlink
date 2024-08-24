@@ -2,6 +2,9 @@ package com.project.dto.req;
 
 import lombok.Data;
 
+/**
+ *  短链接移至回收站请求实体
+ */
 @Data
 public class ShortLinkToRecycleBinReqDTO {
     /**
