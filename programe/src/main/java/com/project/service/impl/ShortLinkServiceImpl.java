@@ -281,13 +281,14 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         return;
     }
 
-    @SneakyThrows
+
     /**
      * 获取网站的favicon图标链接
      *
      * @param url 网站的URL
      * @return favicon图标链接,如果不存在则返回null
      */
+    @SneakyThrows
     private String getFavicon(String url) {
 
         // 创建URL对象
