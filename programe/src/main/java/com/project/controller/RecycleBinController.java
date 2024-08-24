@@ -1,8 +1,11 @@
 package com.project.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
 import com.project.dto.req.ShortLinkToRecycleBinReqDTO;
+import com.project.dto.req.pageRecycleBinShortLinkReqDTO;
+import com.project.dto.resp.ShortLinkPageRespDTO;
 import com.project.service.RecycleBinService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +27,16 @@ public class RecycleBinController {
     public Result<Void> moveShortLinkToRecycleBin(@RequestBody ShortLinkToRecycleBinReqDTO requestParam) {
         recycleBinService.moveShortLinkToRecycleBin(requestParam);
         return Results.success();
+
+    }
+    /**
+     * 分页查询用户回收站的短链接
+     */
+    //TODO：这个接口是有问题的，只能从admin调才行
+    @PostMapping("/api/short-link/v1/recycle-bin/page")
+    public Result<IPage<ShortLinkPageRespDTO>> pageRecycleBinShortLink(@RequestBody pageRecycleBinShortLinkReqDTO requestParam) {
+
+        return Results.success(recycleBinService.pageRecycleBinShortLink(requestParam));
 
     }
 }

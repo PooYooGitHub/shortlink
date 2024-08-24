@@ -19,6 +19,7 @@ public class UserConfiguration {
         FilterRegistrationBean<UserTransmitFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new UserTransmitFilter(stringRedisTemplate));
         registration.addUrlPatterns("/api/short-link/admin/v1/group/*");
+        registration.addUrlPatterns("/api/short-link/admin/v1/recycle-bin/*");
         registration.setOrder(0);
         return registration;
     }

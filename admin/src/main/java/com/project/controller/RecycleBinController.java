@@ -1,18 +1,22 @@
 package com.project.controller;
 
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
 import com.project.remote.dto.RecycleBinRemoteService;
 import com.project.remote.dto.req.ShortLinkToRecycleBinReqDTO;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import com.project.remote.dto.resp.ShortLinkPageRespDTO;
+import com.project.service.RecycleBinService;
+import lombok.AllArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@AllArgsConstructor
 public class RecycleBinController {
     private final RecycleBinRemoteService recycleBinRemoteService=new RecycleBinRemoteService() {
     };
+    private final RecycleBinService recycleBinService;
 
     /**
      * 将短链接移至回收站
@@ -22,5 +26,16 @@ public class RecycleBinController {
         recycleBinRemoteService.moveShortLinkToRecycleBin(requestParam);
         return Results.success();
 
+    }
+
+    /**
+     * 分页查询用户回收站的短链接
+     * @param current
+     * @param size
+     * @return
+     */
+    @GetMapping("/api/short-link/admin/v1/recycle-bin/page")
+    public Result<IPage<ShortLinkPageRespDTO>> pageRecycleBinShortLink(@RequestParam("current") String current, @RequestParam("size") String size) {
+        return recycleBinService.pageRecycleBinShortLink(current, size);
     }
 }
