@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.project.common.convention.exception.ClientException;
 import com.project.dao.entity.ShortLinkDO;
 import com.project.dao.mapper.ShortLinkMapper;
 import com.project.dto.req.ShortLinkRecoverReqDTO;
+import com.project.dto.req.ShortLinkRemoveReqDTO;
 import com.project.dto.req.ShortLinkToRecycleBinReqDTO;
 import com.project.dto.req.ShortLinkPageRecycleBinReqDTO;
 import com.project.dto.resp.ShortLinkPageRespDTO;
@@ -66,5 +68,18 @@ public class RecycleBinServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLin
         int update = baseMapper.update(shortLinkDO, eq);
         stringRedisTemplate.delete(String.format(GO_TO_IS_NULL_SHORT_LINK_KEY, requestParam.getFullShortUrl()));
         return ;
+    }
+
+    @Override
+    public void removeShortLink(ShortLinkRemoveReqDTO requestParam) {
+        LambdaQueryWrapper<ShortLinkDO> eq = Wrappers.lambdaQuery(ShortLinkDO.class)
+                .eq(ShortLinkDO::getGid, requestParam.getGid())
+                .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
+                .eq(ShortLinkDO::getEnableStatus, 1)
+                .eq(ShortLinkDO::getDelFlag, 0);
+        int delete = baseMapper.delete(eq);
+        if (delete < 1) {
+            throw new ClientException("短链接不存在或已删除");
+        }
     }
 }

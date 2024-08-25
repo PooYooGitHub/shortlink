@@ -2,6 +2,7 @@ package com.project.common.database;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import lombok.Data;
 
 import java.util.Date;
@@ -23,6 +24,7 @@ public class baseDO {
     /**
      * 删除标识 0:未删除 1已删除
      */
+    @TableLogic
     private Integer delFlag;
 
     /**

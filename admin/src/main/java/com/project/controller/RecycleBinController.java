@@ -6,6 +6,7 @@ import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
 import com.project.remote.dto.RecycleBinRemoteService;
 import com.project.remote.dto.req.ShortLinkRecoverReqDTO;
+import com.project.remote.dto.req.ShortLinkRemoveReqDTO;
 import com.project.remote.dto.req.ShortLinkToRecycleBinReqDTO;
 import com.project.remote.dto.resp.ShortLinkPageRespDTO;
 import com.project.service.RecycleBinService;
@@ -46,6 +47,14 @@ public class RecycleBinController {
     @PostMapping("/api/short-link/admin/v1/recycle-bin/recover")
     public Result<Void> recoverShortLink(@RequestBody ShortLinkRecoverReqDTO requestParam) {
         recycleBinRemoteService.recoverShortLink(requestParam);
+        return Results.success();
+    }
+    /**
+     * 从回收站删除短链接
+     */
+    @PostMapping("/api/short-link/admin/v1/recycle-bin/remove")
+    public Result<Void> removeShortLink(@RequestBody ShortLinkRemoveReqDTO requestParam) {
+        recycleBinRemoteService.removeShortLink(requestParam);
         return Results.success();
     }
 
