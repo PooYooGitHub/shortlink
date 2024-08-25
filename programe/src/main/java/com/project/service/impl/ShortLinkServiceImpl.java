@@ -9,8 +9,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.common.convention.exception.ClientException;
+import com.project.dao.entity.LinkAccessStatsDO;
 import com.project.dao.entity.ShortLinkDO;
 import com.project.dao.entity.ShortLinkGoToDO;
+import com.project.dao.mapper.LinkAccessStatsMapper;
 import com.project.dao.mapper.ShortLinkGoToMapper;
 import com.project.dao.mapper.ShortLinkMapper;
 import com.project.dto.req.ShortLinkCreateReqDTO;
@@ -59,6 +61,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final ShortLinkGoToMapper ShortLinkGoToMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final RedissonClient redissonClient;
+    private final LinkAccessStatsMapper linkAccessStatsMapper;
 
     @Override
     //TODO:这里没有校验分组名是否存在该用户里面
@@ -233,6 +236,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 if (StringUtil.isNotBlank(originalUrl)) {
                     //如果在获取锁的过程中，其他线程已经获取到锁并且已经设置了短链接和原始链接的对应关系，那么直接跳转
                     ((HttpServletResponse) response).sendRedirect(originalUrl);
+                    linkAccessStats(null,shortUrl);
                     return;
                 }
 
@@ -275,10 +279,34 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
         try {
             ((HttpServletResponse) response).sendRedirect(originalUrl);
+            linkAccessStats(null,shortUrl);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         return;
+    }
+
+    /**
+     * 更新短链接统计情况
+     */
+    private void linkAccessStats(String gid,String fullShortUrl){
+        LambdaQueryWrapper<ShortLinkGoToDO> eq = Wrappers.lambdaQuery(ShortLinkGoToDO.class)
+                .eq(ShortLinkGoToDO::getShortUrl, fullShortUrl);
+        ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToMapper.selectOne(eq);
+        gid=shortLinkGoToDO.getGid();
+        DateTime dateTime = new DateTime();
+        LinkAccessStatsDO build = LinkAccessStatsDO.builder()
+                .gid(gid)
+                .fullShortUrl(fullShortUrl)
+                .date(dateTime)
+                .delFlag(0)
+                .hour(dateTime.hour(true))
+                .weekday(dateTime.dayOfWeek())
+                .pv(1)
+                .uv(2)
+                .uip(3)
+                .build();
+        linkAccessStatsMapper.insertOrUpdate(build);
     }
 
 
