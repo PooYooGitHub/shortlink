@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class pageRecycleBinShortLinkReqDTO extends Page {
+public class ShortLinkPageRecycleBinReqDTO extends Page {
     /**
      * 分组列表
      */

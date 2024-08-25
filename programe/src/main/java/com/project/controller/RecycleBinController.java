@@ -5,7 +5,7 @@ import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
 import com.project.dto.req.ShortLinkRecoverReqDTO;
 import com.project.dto.req.ShortLinkToRecycleBinReqDTO;
-import com.project.dto.req.pageRecycleBinShortLinkReqDTO;
+import com.project.dto.req.ShortLinkPageRecycleBinReqDTO;
 import com.project.dto.resp.ShortLinkPageRespDTO;
 import com.project.service.RecycleBinService;
 import lombok.AllArgsConstructor;
@@ -35,7 +35,7 @@ public class RecycleBinController {
      */
     //TODO：这个接口是有问题的，只能从admin调才行
     @PostMapping("/api/short-link/v1/recycle-bin/page")
-    public Result<IPage<ShortLinkPageRespDTO>> pageRecycleBinShortLink(@RequestBody pageRecycleBinShortLinkReqDTO requestParam) {
+    public Result<IPage<ShortLinkPageRespDTO>> pageRecycleBinShortLink(@RequestBody ShortLinkPageRecycleBinReqDTO requestParam) {
 
         return Results.success(recycleBinService.pageRecycleBinShortLink(requestParam));
 
