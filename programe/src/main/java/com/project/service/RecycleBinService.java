@@ -3,6 +3,7 @@ package com.project.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.project.dao.entity.ShortLinkDO;
+import com.project.dto.req.ShortLinkRecoverReqDTO;
 import com.project.dto.req.ShortLinkToRecycleBinReqDTO;
 import com.project.dto.req.pageRecycleBinShortLinkReqDTO;
 import com.project.dto.resp.ShortLinkPageRespDTO;
@@ -21,4 +22,6 @@ public interface RecycleBinService extends IService<ShortLinkDO> {
     }
 
     IPage<ShortLinkPageRespDTO> pageRecycleBinShortLink(pageRecycleBinShortLinkReqDTO requestParam);
+
+    void recoverShortLink(ShortLinkRecoverReqDTO requestParam);
 }
