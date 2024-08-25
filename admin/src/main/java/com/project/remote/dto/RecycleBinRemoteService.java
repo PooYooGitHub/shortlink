@@ -42,7 +42,7 @@ public interface RecycleBinRemoteService {
         HashMap<String, Object> hashMap = new HashMap<>();
         hashMap.put("gids", requestParam.getGids());
         hashMap.put("current", requestParam.getCurrent());
-        hashMap.put("size", requestParam.getCurrent());
+        hashMap.put("size", requestParam.getSize());
         String resp = HttpRequest.post("http://127.0.0.1:8001/api/short-link/v1/recycle-bin/page")
                 .header("Content-Type", "application/json")
                 .body(JSON.toJSONString(hashMap))
