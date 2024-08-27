@@ -8,7 +8,7 @@ import lombok.Data;
 import java.util.Date;
 
 @Data
-public class baseDO {
+public class BaseDO {
     /**
      * 创建时间
      */
@@ -27,8 +27,5 @@ public class baseDO {
     @TableLogic
     private Integer delFlag;
 
-    /**
-     * 注销时间
-     */
-    private Date delTime;
+
 }

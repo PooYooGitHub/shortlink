@@ -2,7 +2,7 @@ package com.project.dao.entity;
 
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.project.common.database.baseDO;
+import com.project.common.database.BaseDO;
 import lombok.Data;
 
 /**
@@ -11,7 +11,7 @@ import lombok.Data;
 
 @TableName("t_user")
 @Data
-public class UserDO extends baseDO {
+public class UserDO extends BaseDO {
     /**
      * id
      */

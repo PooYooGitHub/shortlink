@@ -324,13 +324,13 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .gid(gid)
                 .fullShortUrl(fullShortUrl)
                 .date(dateTime)
-                .delFlag(0)
                 .hour(dateTime.hour(true))
                 .weekday(dateTime.dayOfWeek())
                 .pv(1)
                 .uv(uv.get())
                 .uip(uip)
                 .build();
+        build.setDelFlag(0);
         if (uv.get() == 1) {
             Cookie cookie = new Cookie("uv", "-");
             cookie.setMaxAge(60 * 60 * 24 * 30);

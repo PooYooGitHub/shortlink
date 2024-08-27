@@ -3,14 +3,14 @@ package com.project.dao.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.project.common.database.baseDO;
+import com.project.common.database.BaseDO;
 import lombok.Data;
 
 import java.util.Date;
 
 @Data
 @TableName("t_link")
-public class ShortLinkDO  extends baseDO {
+public class ShortLinkDO  extends BaseDO {
 
     /**
      * id
@@ -77,6 +77,10 @@ public class ShortLinkDO  extends baseDO {
      * 网站图标
      */
     private String favicon;
+    /**
+     * 注销时间
+     */
+    private Date delTime;
 
 
 }
