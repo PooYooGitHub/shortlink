@@ -2,6 +2,7 @@ package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateTime;
+import cn.hutool.core.util.ArrayUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -26,6 +27,7 @@ import com.project.util.HashUtil;
 import com.project.util.LinkUtil;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jodd.util.StringUtil;
@@ -42,10 +44,13 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.project.common.constant.RedisKeyConstant.GO_TO_IS_NULL_SHORT_LINK_KEY;
 import static com.project.common.constant.RedisKeyConstant.GO_TO_SHORT_LINK_KEY;
@@ -235,8 +240,9 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 originalUrl = stringRedisTemplate.opsForValue().get(String.format(GO_TO_SHORT_LINK_KEY, shortUrl));
                 if (StringUtil.isNotBlank(originalUrl)) {
                     //如果在获取锁的过程中，其他线程已经获取到锁并且已经设置了短链接和原始链接的对应关系，那么直接跳转
+                    linkAccessStats(null,shortUrl,request,response);
                     ((HttpServletResponse) response).sendRedirect(originalUrl);
-                    linkAccessStats(null,shortUrl);
+
                     return;
                 }
 
@@ -278,8 +284,9 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
 
         try {
+            linkAccessStats(null,shortUrl,request,response);
             ((HttpServletResponse) response).sendRedirect(originalUrl);
-            linkAccessStats(null,shortUrl);
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -289,7 +296,16 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     /**
      * 更新短链接统计情况
      */
-    private void linkAccessStats(String gid,String fullShortUrl){
+    //TODO: 增加uv的逻辑还是有问题
+    private void linkAccessStats(String gid,String fullShortUrl,ServletRequest request, ServletResponse response){
+        AtomicReference<Integer> uv= new AtomicReference<>(1);
+        Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+        if (ArrayUtil.isNotEmpty(cookies)){
+            Arrays.stream(cookies).filter(each->each.getName().equals("uv")).findFirst().ifPresent(each->{
+                //如果cookie中有uv，说明是同一个用户
+                uv.set(0);
+            });
+        }
         LambdaQueryWrapper<ShortLinkGoToDO> eq = Wrappers.lambdaQuery(ShortLinkGoToDO.class)
                 .eq(ShortLinkGoToDO::getShortUrl, fullShortUrl);
         ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToMapper.selectOne(eq);
@@ -303,9 +319,20 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .hour(dateTime.hour(true))
                 .weekday(dateTime.dayOfWeek())
                 .pv(1)
-                .uv(2)
+                .uv(uv.get())
                 .uip(3)
                 .build();
+        if (uv.get() == 1) {
+            Cookie cookie = new Cookie("uv", "-");
+            cookie.setMaxAge(60 * 60 * 24 * 30);
+            try {
+                URL url = new URL(fullShortUrl);
+                cookie.setPath(url.getPath());
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+            ((HttpServletResponse) response).addCookie(cookie);
+        }
         linkAccessStatsMapper.insertOrUpdate(build);
     }
 
