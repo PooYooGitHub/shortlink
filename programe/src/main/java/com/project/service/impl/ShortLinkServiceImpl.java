@@ -3,6 +3,9 @@ package com.project.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -11,9 +14,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.common.convention.exception.ClientException;
 import com.project.dao.entity.LinkAccessStatsDO;
+import com.project.dao.entity.LinkLocateStatsDO;
 import com.project.dao.entity.ShortLinkDO;
 import com.project.dao.entity.ShortLinkGoToDO;
 import com.project.dao.mapper.LinkAccessStatsMapper;
+import com.project.dao.mapper.LinkLocateStatsMapper;
 import com.project.dao.mapper.ShortLinkGoToMapper;
 import com.project.dao.mapper.ShortLinkMapper;
 import com.project.dto.req.ShortLinkCreateReqDTO;
@@ -31,7 +36,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jodd.util.StringUtil;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -39,6 +44,7 @@ import org.jsoup.nodes.Element;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +55,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -59,13 +66,21 @@ import static com.project.common.constant.RedisKeyConstant.*;
  */
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO> implements ShortLinkService {
+
+    @Value("${short-link.location.key}")
+    private String locationKey;
+
+
     private final RBloomFilter<String> shortLinkCachePenetrationBloomFilter;
     private final ShortLinkGoToMapper ShortLinkGoToMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final RedissonClient redissonClient;
     private final LinkAccessStatsMapper linkAccessStatsMapper;
+    private final LinkLocateStatsMapper linkLocateStatsMapper;
+
+
 
     @Override
     //TODO:这里没有校验分组名是否存在该用户里面
@@ -320,7 +335,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToMapper.selectOne(eq);
         gid=shortLinkGoToDO.getGid();
         DateTime dateTime = new DateTime();
-        LinkAccessStatsDO build = LinkAccessStatsDO.builder()
+        LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
                 .gid(gid)
                 .fullShortUrl(fullShortUrl)
                 .date(dateTime)
@@ -330,7 +345,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .uv(uv.get())
                 .uip(uip)
                 .build();
-        build.setDelFlag(0);
+        linkAccessStatsDO.setDelFlag(0);
         if (uv.get() == 1) {
             Cookie cookie = new Cookie("uv", "-");
             cookie.setMaxAge(60 * 60 * 24 * 30);
@@ -342,7 +357,27 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             }
             ((HttpServletResponse) response).addCookie(cookie);
         }
-        linkAccessStatsMapper.insertOrUpdate(build);
+        linkAccessStatsMapper.insertOrUpdate(linkAccessStatsDO);
+        String LocationResponse = HttpUtil.get("https://restapi.amap.com/v3/ip", Map.of("ip", ip, "key", locationKey));
+        JSONObject locationObject = JSONUtil.parseObj(LocationResponse);
+        String infocode = locationObject.getStr("infocode");
+        if (StringUtil.isNotBlank(infocode)&&Objects.equals(infocode, "10000")) {
+            String province = locationObject.getStr("province");
+            Boolean infoIsBlank = StringUtil.equals(province, "[]");
+            LinkLocateStatsDO linkLocateStatsDO = LinkLocateStatsDO.builder()
+                    .fullShortUrl(fullShortUrl)
+                    .gid(gid)
+                    .date(dateTime)
+                    .cnt(1)
+                    .province(infoIsBlank ? "未知" : locationObject.getStr("province"))
+                    .city(infoIsBlank ? "未知" : locationObject.getStr("city"))
+                    .adcode(infoIsBlank ? "未知" : locationObject.getStr("adcode"))
+                    .country(infoIsBlank ? "未知" : "中国")
+                    .build();
+            linkLocateStatsDO.setDelFlag(0);
+            linkLocateStatsMapper.insertOrUpdate(linkLocateStatsDO);
+        }
+
     }
 
 
