@@ -52,8 +52,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.project.common.constant.RedisKeyConstant.GO_TO_IS_NULL_SHORT_LINK_KEY;
-import static com.project.common.constant.RedisKeyConstant.GO_TO_SHORT_LINK_KEY;
+import static com.project.common.constant.RedisKeyConstant.*;
 
 /**
  * 短链接接口实现层
@@ -298,6 +297,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
      */
     //TODO: 增加uv的逻辑还是有问题
     private void linkAccessStats(String gid,String fullShortUrl,ServletRequest request, ServletResponse response){
+        //设置uv
         AtomicReference<Integer> uv= new AtomicReference<>(1);
         Cookie[] cookies = ((HttpServletRequest) request).getCookies();
         if (ArrayUtil.isNotEmpty(cookies)){
@@ -306,6 +306,15 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 uv.set(0);
             });
         }
+
+        //设置uip
+        Integer uip=0;
+        String ip = LinkUtil.getIp((HttpServletRequest) request);
+        if (!stringRedisTemplate.opsForSet().members(SHORT_LINK_UIP_STATS_KEY+fullShortUrl).contains(ip)){
+            uip=1;
+            stringRedisTemplate.opsForSet().add(SHORT_LINK_UIP_STATS_KEY+fullShortUrl, ip);
+        }
+
         LambdaQueryWrapper<ShortLinkGoToDO> eq = Wrappers.lambdaQuery(ShortLinkGoToDO.class)
                 .eq(ShortLinkGoToDO::getShortUrl, fullShortUrl);
         ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToMapper.selectOne(eq);
@@ -320,7 +329,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .weekday(dateTime.dayOfWeek())
                 .pv(1)
                 .uv(uv.get())
-                .uip(3)
+                .uip(uip)
                 .build();
         if (uv.get() == 1) {
             Cookie cookie = new Cookie("uv", "-");
