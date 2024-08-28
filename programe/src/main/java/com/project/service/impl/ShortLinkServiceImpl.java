@@ -2,6 +2,7 @@ package com.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateTime;
+import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
@@ -311,10 +312,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         //设置uv
         AtomicReference<Integer> uv = new AtomicReference<>(1);
         Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+        AtomicReference<String> vistorId = new AtomicReference<>();
         if (ArrayUtil.isNotEmpty(cookies)) {
             Arrays.stream(cookies).filter(each -> each.getName().equals("uv")).findFirst().ifPresent(each -> {
                 //如果cookie中有uv，说明是同一个用户
                 uv.set(0);
+                vistorId.set(each.getValue());
             });
         }
 
@@ -342,8 +345,10 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .uip(uip)
                 .build();
         linkAccessStatsDO.setDelFlag(0);
+
         if (uv.get() == 1) {
-            Cookie cookie = new Cookie("uv", "-");
+            vistorId.set(UUID.randomUUID().toString());
+            Cookie cookie = new Cookie("uv", vistorId.get());
             cookie.setMaxAge(60 * 60 * 24 * 30);
             try {
                 URL url = new URL(fullShortUrl);
@@ -404,8 +409,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         LinkAccessLogsDO linkAccessLogsDO = LinkAccessLogsDO.builder()
                 .fullShortUrl(fullShortUrl)
                 .gid(gid)
-                //todo:user需要修改
-                .user("未知")
+                .user(vistorId.get())
                 .browser(browser)
                 .os(os)
                 .ip(ip)
