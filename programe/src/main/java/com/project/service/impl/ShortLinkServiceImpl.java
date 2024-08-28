@@ -75,7 +75,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final LinkLocateStatsMapper linkLocateStatsMapper;
     private final LinkOsStatsMapper linkOsStatsMapper;
     private final LinkBrowserStatsMapper linkBrowserStatsMapper;
-
+    private final LinkAccessLogsMapper linkAccessLogsMapper;
 
 
     @Override
@@ -250,7 +250,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 originalUrl = stringRedisTemplate.opsForValue().get(String.format(GO_TO_SHORT_LINK_KEY, shortUrl));
                 if (StringUtil.isNotBlank(originalUrl)) {
                     //如果在获取锁的过程中，其他线程已经获取到锁并且已经设置了短链接和原始链接的对应关系，那么直接跳转
-                    linkAccessStats(null,shortUrl,request,response);
+                    linkAccessStats(null, shortUrl, request, response);
                     ((HttpServletResponse) response).sendRedirect(originalUrl);
 
                     return;
@@ -294,7 +294,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
 
         try {
-            linkAccessStats(null,shortUrl,request,response);
+            linkAccessStats(null, shortUrl, request, response);
             ((HttpServletResponse) response).sendRedirect(originalUrl);
 
         } catch (IOException e) {
@@ -307,29 +307,29 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
      * 更新短链接统计情况
      */
     //TODO: 增加uv的逻辑还是有问题
-    private void linkAccessStats(String gid,String fullShortUrl,ServletRequest request, ServletResponse response){
+    private void linkAccessStats(String gid, String fullShortUrl, ServletRequest request, ServletResponse response) {
         //设置uv
-        AtomicReference<Integer> uv= new AtomicReference<>(1);
+        AtomicReference<Integer> uv = new AtomicReference<>(1);
         Cookie[] cookies = ((HttpServletRequest) request).getCookies();
-        if (ArrayUtil.isNotEmpty(cookies)){
-            Arrays.stream(cookies).filter(each->each.getName().equals("uv")).findFirst().ifPresent(each->{
+        if (ArrayUtil.isNotEmpty(cookies)) {
+            Arrays.stream(cookies).filter(each -> each.getName().equals("uv")).findFirst().ifPresent(each -> {
                 //如果cookie中有uv，说明是同一个用户
                 uv.set(0);
             });
         }
 
         //设置uip
-        Integer uip=0;
+        Integer uip = 0;
         String ip = LinkUtil.getIp((HttpServletRequest) request);
-        if (!stringRedisTemplate.opsForSet().members(SHORT_LINK_UIP_STATS_KEY+fullShortUrl).contains(ip)){
-            uip=1;
-            stringRedisTemplate.opsForSet().add(SHORT_LINK_UIP_STATS_KEY+fullShortUrl, ip);
+        if (!stringRedisTemplate.opsForSet().members(SHORT_LINK_UIP_STATS_KEY + fullShortUrl).contains(ip)) {
+            uip = 1;
+            stringRedisTemplate.opsForSet().add(SHORT_LINK_UIP_STATS_KEY + fullShortUrl, ip);
         }
 
         LambdaQueryWrapper<ShortLinkGoToDO> eq = Wrappers.lambdaQuery(ShortLinkGoToDO.class)
                 .eq(ShortLinkGoToDO::getShortUrl, fullShortUrl);
         ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToMapper.selectOne(eq);
-        gid=shortLinkGoToDO.getGid();
+        gid = shortLinkGoToDO.getGid();
         DateTime dateTime = new DateTime();
         LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
                 .gid(gid)
@@ -359,7 +359,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         String LocationResponse = HttpUtil.get("https://restapi.amap.com/v3/ip", Map.of("ip", ip, "key", locationKey));
         JSONObject locationObject = JSONUtil.parseObj(LocationResponse);
         String infocode = locationObject.getStr("infocode");
-        if (StringUtil.isNotBlank(infocode)&&Objects.equals(infocode, "10000")) {
+        if (StringUtil.isNotBlank(infocode) && Objects.equals(infocode, "10000")) {
             String province = locationObject.getStr("province");
             Boolean infoIsBlank = StringUtil.equals(province, "[]");
             LinkLocateStatsDO linkLocateStatsDO = LinkLocateStatsDO.builder()
@@ -377,27 +377,40 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
 
         //统计操作系统
+        String os = LinkUtil.getOs((HttpServletRequest) request);
         LinkOsStatsDO linkOsStatsDO = LinkOsStatsDO.builder()
                 .fullShortUrl(fullShortUrl)
                 .gid(gid)
                 .date(dateTime)
                 .cnt(1)
-                .os(LinkUtil.getOs((HttpServletRequest) request))
+                .os(os)
                 .build();
         linkOsStatsDO.setDelFlag(0);
         linkOsStatsMapper.insertOrUpdate(linkOsStatsDO);
 
         //统计浏览器
+        String browser = LinkUtil.getBrowser((HttpServletRequest) request);
         LinkBrowserStatsDO linkBrowserStatsDO = LinkBrowserStatsDO.builder()
                 .fullShortUrl(fullShortUrl)
                 .gid(gid)
                 .date(dateTime)
                 .cnt(1)
-                .browser(LinkUtil.getBrowser((HttpServletRequest) request))
+                .browser(browser)
                 .build();
         linkBrowserStatsDO.setDelFlag(0);
         linkBrowserStatsMapper.insertOrUpdate(linkBrowserStatsDO);
 
+        //
+        LinkAccessLogsDO linkAccessLogsDO = LinkAccessLogsDO.builder()
+                .fullShortUrl(fullShortUrl)
+                .gid(gid)
+                //todo:user需要修改
+                .user("未知")
+                .browser(browser)
+                .os(os)
+                .ip(ip)
+                .build();
+        linkAccessLogsMapper.insert(linkAccessLogsDO);
 
     }
 
@@ -406,7 +419,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
      * 获取网站的favicon图标链接
      *
      * @param url 网站的URL
-     * @return favicon图标链接,如果不存在则返回null
+     * @return favicon图标链接, 如果不存在则返回null
      */
     @SneakyThrows
     private String getFavicon(String url) {
