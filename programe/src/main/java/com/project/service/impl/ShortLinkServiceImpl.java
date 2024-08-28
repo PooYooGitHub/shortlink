@@ -78,6 +78,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final LinkBrowserStatsMapper linkBrowserStatsMapper;
     private final LinkAccessLogsMapper linkAccessLogsMapper;
     private final LinkDeviceStatsMapper linkDeviceStatsMapper;
+    private final LinkNetworkStatsMapper linkNetworkStatsMapper;
 
     @Override
     //TODO:这里没有校验分组名是否存在该用户里面
@@ -425,6 +426,16 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .date(dateTime)
                 .build();
         linkDeviceStatsMapper.insertOrUpdate(linkDeviceStatsDO);
+
+        //访问网络类型
+        LinkNetworkStatsDO linkNetworkStatsDO = LinkNetworkStatsDO.builder()
+                .network(LinkUtil.getNetwork(((HttpServletRequest) request)))
+                .cnt(1)
+                .gid(gid)
+                .fullShortUrl(fullShortUrl)
+                .date(dateTime)
+                .build();
+        linkNetworkStatsMapper.insertOrUpdate(linkNetworkStatsDO);
 
     }
 
