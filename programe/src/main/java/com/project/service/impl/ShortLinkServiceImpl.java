@@ -13,14 +13,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.common.convention.exception.ClientException;
-import com.project.dao.entity.LinkAccessStatsDO;
-import com.project.dao.entity.LinkLocateStatsDO;
-import com.project.dao.entity.ShortLinkDO;
-import com.project.dao.entity.ShortLinkGoToDO;
-import com.project.dao.mapper.LinkAccessStatsMapper;
-import com.project.dao.mapper.LinkLocateStatsMapper;
-import com.project.dao.mapper.ShortLinkGoToMapper;
-import com.project.dao.mapper.ShortLinkMapper;
+import com.project.dao.entity.*;
+import com.project.dao.mapper.*;
 import com.project.dto.req.ShortLinkCreateReqDTO;
 import com.project.dto.req.ShortLinkPageReqDTO;
 import com.project.dto.req.ShortLinkUpdateReqDTO;
@@ -79,6 +73,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final RedissonClient redissonClient;
     private final LinkAccessStatsMapper linkAccessStatsMapper;
     private final LinkLocateStatsMapper linkLocateStatsMapper;
+    private final LinkOsStatsMapper linkOsStatsMapper;
 
 
 
@@ -358,6 +353,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ((HttpServletResponse) response).addCookie(cookie);
         }
         linkAccessStatsMapper.insertOrUpdate(linkAccessStatsDO);
+
         String LocationResponse = HttpUtil.get("https://restapi.amap.com/v3/ip", Map.of("ip", ip, "key", locationKey));
         JSONObject locationObject = JSONUtil.parseObj(LocationResponse);
         String infocode = locationObject.getStr("infocode");
@@ -377,6 +373,16 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             linkLocateStatsDO.setDelFlag(0);
             linkLocateStatsMapper.insertOrUpdate(linkLocateStatsDO);
         }
+
+        LinkOsStatsDO linkOsStatsDO = LinkOsStatsDO.builder()
+                .fullShortUrl(fullShortUrl)
+                .gid(gid)
+                .date(dateTime)
+                .cnt(1)
+                .os(LinkUtil.getOs((HttpServletRequest) request))
+                .build();
+        linkOsStatsDO.setDelFlag(0);
+        linkOsStatsMapper.insertOrUpdate(linkOsStatsDO);
 
     }
 
