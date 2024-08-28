@@ -1,5 +1,7 @@
 package com.project.util;
 
+import cn.hutool.http.useragent.UserAgent;
+import cn.hutool.http.useragent.UserAgentUtil;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Calendar;
@@ -70,21 +72,17 @@ public class LinkUtil {
      * @return 访问操作系统
      */
     public static String getOs(HttpServletRequest request) {
-        String userAgent = request.getHeader("User-Agent");
-        if (userAgent.toLowerCase().contains("windows")) {
-            return "Windows";
-        } else if (userAgent.toLowerCase().contains("mac")) {
-            return "Mac OS";
-        } else if (userAgent.toLowerCase().contains("linux")) {
-            return "Linux";
-        } else if (userAgent.toLowerCase().contains("unix")) {
-            return "Unix";
-        } else if (userAgent.toLowerCase().contains("android")) {
-            return "Android";
-        } else if (userAgent.toLowerCase().contains("iphone")) {
-            return "iOS";
-        } else {
-            return "Unknown";
-        }
+        UserAgent parse = UserAgentUtil.parse(request.getHeader("User-Agent"));
+        return parse.getOs().getName();
+    }
+    /**
+     * 获取用户访问浏览器
+     *
+     * @param request 请求
+     * @return 访问操作系统
+     */
+    public static String getBrowser(HttpServletRequest request) {
+        UserAgent parse = UserAgentUtil.parse(request.getHeader("User-Agent"));
+        return parse.getBrowser().getName();
     }
 }

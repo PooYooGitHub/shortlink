@@ -74,6 +74,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final LinkAccessStatsMapper linkAccessStatsMapper;
     private final LinkLocateStatsMapper linkLocateStatsMapper;
     private final LinkOsStatsMapper linkOsStatsMapper;
+    private final LinkBrowserStatsMapper linkBrowserStatsMapper;
 
 
 
@@ -354,6 +355,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
         linkAccessStatsMapper.insertOrUpdate(linkAccessStatsDO);
 
+        //统计访问地区
         String LocationResponse = HttpUtil.get("https://restapi.amap.com/v3/ip", Map.of("ip", ip, "key", locationKey));
         JSONObject locationObject = JSONUtil.parseObj(LocationResponse);
         String infocode = locationObject.getStr("infocode");
@@ -374,6 +376,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             linkLocateStatsMapper.insertOrUpdate(linkLocateStatsDO);
         }
 
+        //统计操作系统
         LinkOsStatsDO linkOsStatsDO = LinkOsStatsDO.builder()
                 .fullShortUrl(fullShortUrl)
                 .gid(gid)
@@ -383,6 +386,18 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .build();
         linkOsStatsDO.setDelFlag(0);
         linkOsStatsMapper.insertOrUpdate(linkOsStatsDO);
+
+        //统计浏览器
+        LinkBrowserStatsDO linkBrowserStatsDO = LinkBrowserStatsDO.builder()
+                .fullShortUrl(fullShortUrl)
+                .gid(gid)
+                .date(dateTime)
+                .cnt(1)
+                .browser(LinkUtil.getBrowser((HttpServletRequest) request))
+                .build();
+        linkBrowserStatsDO.setDelFlag(0);
+        linkBrowserStatsMapper.insertOrUpdate(linkBrowserStatsDO);
+
 
     }
 
