@@ -105,6 +105,7 @@ public class LinkUtil {
      * @param request 请求
      * @return 访问设备
      */
+    //TODO:功能没有正确实现
     public static String getNetwork(HttpServletRequest request) {
         String actualIp = getIp(request);
         // 这里简单判断IP地址范围，您可能需要更复杂的逻辑
