@@ -77,7 +77,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final LinkOsStatsMapper linkOsStatsMapper;
     private final LinkBrowserStatsMapper linkBrowserStatsMapper;
     private final LinkAccessLogsMapper linkAccessLogsMapper;
-
+    private final LinkDeviceStatsMapper linkDeviceStatsMapper;
 
     @Override
     //TODO:这里没有校验分组名是否存在该用户里面
@@ -415,6 +415,16 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .ip(ip)
                 .build();
         linkAccessLogsMapper.insert(linkAccessLogsDO);
+
+        //访问设备类型
+        LinkDeviceStatsDO linkDeviceStatsDO = LinkDeviceStatsDO.builder()
+                .device(LinkUtil.getDevice(((HttpServletRequest) request)))
+                .cnt(1)
+                .gid(gid)
+                .fullShortUrl(fullShortUrl)
+                .date(dateTime)
+                .build();
+        linkDeviceStatsMapper.insertOrUpdate(linkDeviceStatsDO);
 
     }
 
