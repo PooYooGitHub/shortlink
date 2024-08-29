@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -365,6 +366,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         String LocationResponse = HttpUtil.get("https://restapi.amap.com/v3/ip", Map.of("ip", ip, "key", locationKey));
         JSONObject locationObject = JSONUtil.parseObj(LocationResponse);
         String infocode = locationObject.getStr("infocode");
+        String actualProvince="未知";
+        String actualCity="未知";
         if (StringUtil.isNotBlank(infocode) && Objects.equals(infocode, "10000")) {
             String province = locationObject.getStr("province");
             Boolean infoIsBlank = StringUtil.equals(province, "[]");
@@ -373,8 +376,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .gid(gid)
                     .date(dateTime)
                     .cnt(1)
-                    .province(infoIsBlank ? "未知" : locationObject.getStr("province"))
-                    .city(infoIsBlank ? "未知" : locationObject.getStr("city"))
+                    .province(actualProvince=infoIsBlank ? "未知" : locationObject.getStr("province"))
+                    .city(actualCity=infoIsBlank ? "未知" : locationObject.getStr("city"))
                     .adcode(infoIsBlank ? "未知" : locationObject.getStr("adcode"))
                     .country(infoIsBlank ? "未知" : "中国")
                     .build();
@@ -407,19 +410,11 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         linkBrowserStatsMapper.insertOrUpdate(linkBrowserStatsDO);
 
         //
-        LinkAccessLogsDO linkAccessLogsDO = LinkAccessLogsDO.builder()
-                .fullShortUrl(fullShortUrl)
-                .gid(gid)
-                .user(vistorId.get())
-                .browser(browser)
-                .os(os)
-                .ip(ip)
-                .build();
-        linkAccessLogsMapper.insert(linkAccessLogsDO);
 
         //访问设备类型
+        String device = LinkUtil.getDevice((HttpServletRequest) request);
         LinkDeviceStatsDO linkDeviceStatsDO = LinkDeviceStatsDO.builder()
-                .device(LinkUtil.getDevice(((HttpServletRequest) request)))
+                .device(device)
                 .cnt(1)
                 .gid(gid)
                 .fullShortUrl(fullShortUrl)
@@ -428,8 +423,9 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         linkDeviceStatsMapper.insertOrUpdate(linkDeviceStatsDO);
 
         //访问网络类型
+        String network = LinkUtil.getNetwork((HttpServletRequest) request);
         LinkNetworkStatsDO linkNetworkStatsDO = LinkNetworkStatsDO.builder()
-                .network(LinkUtil.getNetwork(((HttpServletRequest) request)))
+                .network(network)
                 .cnt(1)
                 .gid(gid)
                 .fullShortUrl(fullShortUrl)
@@ -437,6 +433,18 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .build();
         linkNetworkStatsMapper.insertOrUpdate(linkNetworkStatsDO);
 
+        LinkAccessLogsDO linkAccessLogsDO = LinkAccessLogsDO.builder()
+                .fullShortUrl(fullShortUrl)
+                .gid(gid)
+                .user(vistorId.get())
+                .browser(browser)
+                .os(os)
+                .ip(ip)
+                .network(network)
+                .device(device)
+                .locate(StrUtil.join("-","中国",actualProvince,actualCity))
+                .build();
+        linkAccessLogsMapper.insert(linkAccessLogsDO);
     }
 
 
