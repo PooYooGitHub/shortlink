@@ -1,9 +1,12 @@
 package com.project.controller;
 
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.common.convention.result.Result;
 import com.project.remote.dto.ShortLinkRemoteService;
+import com.project.remote.dto.req.ShortLinkStatsAccessRecordReqDTO;
 import com.project.remote.dto.req.ShortLinkStatsReqDTO;
+import com.project.remote.dto.resp.ShortLinkStatsAccessRecordRespDTO;
 import com.project.remote.dto.resp.ShortLinkStatsRespDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,5 +32,12 @@ public class ShortLinkStatsController {
     @GetMapping("/api/short-link/admin/v1/stats")
     public Result<ShortLinkStatsRespDTO> shortLinkStats(ShortLinkStatsReqDTO requestParam) {
         return shortLinkRemoteService.oneShortLinkStats(requestParam);
+    }
+    /**
+     * 分页查询单个短链接在指定时间内的访问记录
+     */
+    @GetMapping("/api/short-link/admin/v1/stats/access-record")
+    public Result<IPage<ShortLinkStatsAccessRecordRespDTO>> shortLinkStatsAccessRecord(ShortLinkStatsAccessRecordReqDTO requestParam) {
+        return shortLinkRemoteService.shortLinkStatsAccessRecord(requestParam);
     }
 }

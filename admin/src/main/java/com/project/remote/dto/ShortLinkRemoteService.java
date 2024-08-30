@@ -2,21 +2,19 @@ package com.project.remote.dto;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.http.HttpUtil;
-import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.common.convention.result.Result;
 import com.project.remote.dto.req.ShortLinkCreateReqDTO;
 import com.project.remote.dto.req.ShortLinkPageReqDTO;
+import com.project.remote.dto.req.ShortLinkStatsAccessRecordReqDTO;
 import com.project.remote.dto.req.ShortLinkStatsReqDTO;
-import com.project.remote.dto.resp.GroupShortLinkCountRespDTO;
-import com.project.remote.dto.resp.ShortLinkCreateRespDTO;
-import com.project.remote.dto.resp.ShortLinkPageRespDTO;
-import com.project.remote.dto.resp.ShortLinkStatsRespDTO;
+import com.project.remote.dto.resp.*;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 远程调用短链接服务
@@ -30,9 +28,12 @@ public interface ShortLinkRemoteService {
      */
     default Result<ShortLinkCreateRespDTO> createShortLink(ShortLinkCreateReqDTO requestParam) {
         //使用http的方法来远程调用
+        Map<String, Object> stringObjectMap = BeanUtil.beanToMap(requestParam, false, true);
+        stringObjectMap.remove("orders");
+        stringObjectMap.remove("records");
         String resp = HttpUtil.
-                post("http://127.0.0.1:8001/api/short-link/v1/create", JSONUtil.toJsonStr(requestParam));
-        return JSON.parseObject(resp, new TypeReference<Result<ShortLinkCreateRespDTO>>() {
+                post("http://127.0.0.1:8001/api/short-link/v1/create", stringObjectMap);
+        return JSON.parseObject(resp, new TypeReference<>() {
         });
 
     }
@@ -65,7 +66,7 @@ public interface ShortLinkRemoteService {
         });
     }
     /**
-     * 访问单个短链接指定时间内监控数据
+     * 访问单个短链接指定时间内监控数据(图表显示)
      *
      * @param requestParam 访问短链接监控请求参数
      * @return 短链接监控信息
@@ -77,5 +78,18 @@ public interface ShortLinkRemoteService {
     }
 
 
+    /**
+     * 访问单个短链接指定时间内监控数据(历史访问记录)
+     * @param requestParam 访问短链接监控请求参数
+     * @return 短链接监控信息
+     */
+    default Result<IPage<ShortLinkStatsAccessRecordRespDTO>>  shortLinkStatsAccessRecord(ShortLinkStatsAccessRecordReqDTO requestParam) {
+        Map<String, Object> stringObjectMap = BeanUtil.beanToMap(requestParam, false, true);
+        stringObjectMap.remove("orders");
+        stringObjectMap.remove("records");
+        String resultBodyStr = HttpUtil.get("http://127.0.0.1:8001/api/short-link/v1/stats/access-record", stringObjectMap);
+        return JSON.parseObject(resultBodyStr, new TypeReference<Result<IPage<ShortLinkStatsAccessRecordRespDTO>>>() {
+        });
+    }
 
 }
