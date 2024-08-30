@@ -218,6 +218,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
      * 但是这时由用户生成了一个http://www.shyu.com/3GbK8q1的短链接，那这个短链接不就失效了？
      * 解决方法： TODO：添加短链接时尝试删除`短链接不存在缓存`中的相关数据
      */
+    //TODO:访问短链接后需要向短链接表中添加访问记录
     public void shortLinkRedirect(String shortUri, ServletRequest request, ServletResponse response) {
         //由于短链接的分片键是gid，查询尽量用gid查询，不然就会查询所有的表，
         //所以这里我创建了一个新的表，用来存储短链接和gid的对应关系goto
