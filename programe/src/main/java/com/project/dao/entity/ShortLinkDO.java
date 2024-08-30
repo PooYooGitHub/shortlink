@@ -82,5 +82,18 @@ public class ShortLinkDO  extends BaseDO {
      */
     private Date delTime;
 
+    /**
+     * 总访问用户量
+     */
+    private Integer totalUv;
+    /**
+     * 总访问量
+     */
+    private Integer totalPv;
+    /**
+     * 总访问IP数
+     */
+    private Integer totalUip;
+
 
 }
