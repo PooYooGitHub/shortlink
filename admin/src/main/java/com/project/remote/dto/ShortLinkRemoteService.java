@@ -2,6 +2,7 @@ package com.project.remote.dto;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -28,12 +29,9 @@ public interface ShortLinkRemoteService {
      */
     default Result<ShortLinkCreateRespDTO> createShortLink(ShortLinkCreateReqDTO requestParam) {
         //使用http的方法来远程调用
-        Map<String, Object> stringObjectMap = BeanUtil.beanToMap(requestParam, false, true);
-        stringObjectMap.remove("orders");
-        stringObjectMap.remove("records");
         String resp = HttpUtil.
-                post("http://127.0.0.1:8001/api/short-link/v1/create", stringObjectMap);
-        return JSON.parseObject(resp, new TypeReference<>() {
+                post("http://127.0.0.1:8001/api/short-link/v1/create", JSONUtil.toJsonStr(requestParam));
+        return JSON.parseObject(resp, new TypeReference<Result<ShortLinkCreateRespDTO>>() {
         });
 
     }
