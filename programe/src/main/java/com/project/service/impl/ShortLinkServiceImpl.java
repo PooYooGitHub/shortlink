@@ -80,6 +80,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final LinkAccessLogsMapper linkAccessLogsMapper;
     private final LinkDeviceStatsMapper linkDeviceStatsMapper;
     private final LinkNetworkStatsMapper linkNetworkStatsMapper;
+    private final LinkTodayStatsMapper linkTodayStatsMapper;
 
     @Override
     //TODO:这里没有校验分组名是否存在该用户里面
@@ -309,7 +310,6 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     /**
      * 更新短链接统计情况
      */
-    //TODO: 增加uv的逻辑还是有问题
     private void linkAccessStats(String gid, String fullShortUrl, ServletRequest request, ServletResponse response) {
         //设置uv
         AtomicReference<Integer> uv = new AtomicReference<>(1);
@@ -445,6 +445,18 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .locate(StrUtil.join("-","中国",actualProvince,actualCity))
                 .build();
         linkAccessLogsMapper.insert(linkAccessLogsDO);
+
+
+        //统计今日访问情况
+        LinkTodayStatsDO linkTodayStatsDO = LinkTodayStatsDO.builder()
+                .fullShortUrl(fullShortUrl)
+                .gid(gid)
+                .date(dateTime)
+                .todayPv(1)
+                .todayUv(uv.get())
+                .todayUip(uip)
+                .build();
+        linkTodayStatsMapper.insertOrUpdate(linkTodayStatsDO);
     }
 
 

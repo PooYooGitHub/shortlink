@@ -1,5 +1,6 @@
 package com.project.dao.entity;
 
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.project.common.database.BaseDO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +13,7 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@TableName("t_link_today_stats")
 public class LinkTodayStatsDO extends BaseDO {
     /**
      * id
