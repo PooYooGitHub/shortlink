@@ -67,6 +67,7 @@ public class ShortLinkPageRespDTO {
      */
     @TableField("`describe`")
     private String describe;
+
     /**
      * 今日pv
      */
