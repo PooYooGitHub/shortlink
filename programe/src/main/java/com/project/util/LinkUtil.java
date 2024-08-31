@@ -41,9 +41,9 @@ public class LinkUtil {
 
         // 检查 date 是否超过一周
         if (dateMillis - currentTimeMillis > ONE_WEEK_MILLIS) {
-            // 如果超过一周，那么将有效时间设置在一周后
+            // 如果超过一周，那么将有效时间设置在6天后
             Calendar calendar = Calendar.getInstance();
-            calendar.add(Calendar.DAY_OF_MONTH, 7);
+            calendar.add(Calendar.DAY_OF_MONTH, 6);
             return calendar.getTimeInMillis() + ThreadLocalRandom.current().nextLong(0, 24 * 60 * 60 * 1000L)-currentTimeMillis;
         } else {
             // 如果没有超过一周，则设置为 date 的时间戳
