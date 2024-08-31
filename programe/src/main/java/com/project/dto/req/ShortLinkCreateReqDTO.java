@@ -1,7 +1,10 @@
 package com.project.dto.req;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
@@ -9,6 +12,9 @@ import java.util.Date;
  * 短链接创建请求实体
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ShortLinkCreateReqDTO {
     /**
      * 创建类型，0：接口创建 1：控制台创建

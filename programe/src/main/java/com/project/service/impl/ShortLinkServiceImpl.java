@@ -16,15 +16,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.project.common.convention.exception.ClientException;
 import com.project.dao.entity.*;
 import com.project.dao.mapper.*;
+import com.project.dto.req.ShortLinkBatchCreateReqDTO;
 import com.project.dto.req.ShortLinkCreateReqDTO;
 import com.project.dto.req.ShortLinkPageReqDTO;
 import com.project.dto.req.ShortLinkUpdateReqDTO;
-import com.project.dto.resp.GroupShortLinkCountRespDTO;
-import com.project.dto.resp.ShortLinkCreateRespDTO;
-import com.project.dto.resp.ShortLinkPageRespDTO;
+import com.project.dto.resp.*;
 import com.project.service.ShortLinkService;
 import com.project.util.HashUtil;
 import com.project.util.LinkUtil;
+import groovy.util.logging.Slf4j;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
@@ -47,10 +47,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -59,7 +56,7 @@ import static com.project.common.constant.RedisKeyConstant.*;
 /**
  * 短链接接口实现层
  */
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO> implements ShortLinkService {
@@ -85,7 +82,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     @Override
     //TODO:这里没有校验分组名是否存在该用户里面
-    public ShortLinkCreateRespDTO create(ShortLinkCreateReqDTO requestParam) {
+    public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
 
         // 生成短链接使用的是hash算法，可能会存在hash冲突，需要处理
         //将 新生成的url存入布隆过滤器,好像可以解决
@@ -116,6 +113,33 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 gid(requestParam.getGid()).
                 originUrl(requestParam.getOriginUrl()).
                 fullShortUrl(shortLinkDO.getFullShortUrl())
+                .build();
+    }
+
+    @Override
+    public ShortLinkBatchCreateRespDTO batchCreateShortLink(ShortLinkBatchCreateReqDTO requestParam) {
+        List<String> originUrls = requestParam.getOriginUrls();
+        List<String> describes = requestParam.getDescribes();
+        List<ShortLinkBaseInfoRespDTO> result = new ArrayList<>();
+        for (int i = 0; i < originUrls.size(); i++) {
+            ShortLinkCreateReqDTO shortLinkCreateReqDTO = BeanUtil.toBean(requestParam, ShortLinkCreateReqDTO.class);
+            shortLinkCreateReqDTO.setOriginUrl(originUrls.get(i));
+            shortLinkCreateReqDTO.setDescribe(describes.get(i));
+            try {
+                ShortLinkCreateRespDTO shortLink = createShortLink(shortLinkCreateReqDTO);
+                ShortLinkBaseInfoRespDTO linkBaseInfoRespDTO = ShortLinkBaseInfoRespDTO.builder()
+                        .fullShortUrl(shortLink.getFullShortUrl())
+                        .originUrl(shortLink.getOriginUrl())
+                        .describe(describes.get(i))
+                        .build();
+                result.add(linkBaseInfoRespDTO);
+            } catch (Throwable ex) {
+                log.error("批量创建短链接失败，原始参数："+ originUrls.get(i));
+            }
+        }
+        return ShortLinkBatchCreateRespDTO.builder()
+                .total(result.size())
+                .baseLinkInfos(result)
                 .build();
     }
 
@@ -227,7 +251,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         String protocol = ((HttpServletRequest) request).getScheme();
         String serverPort=String.valueOf(request.getServerPort());
         if (!Objects.equals(serverPort, "80")){
-            serverPort=":"+serverPort;
+            serverPort = ":" + serverPort;
         }else {
             serverPort="";
         }
@@ -310,6 +334,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
         return;
     }
+
+
 
     /**
      * 更新短链接统计情况

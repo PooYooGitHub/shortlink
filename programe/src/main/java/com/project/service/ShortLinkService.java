@@ -3,10 +3,12 @@ package com.project.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.project.dao.entity.ShortLinkDO;
+import com.project.dto.req.ShortLinkBatchCreateReqDTO;
 import com.project.dto.req.ShortLinkCreateReqDTO;
 import com.project.dto.req.ShortLinkPageReqDTO;
 import com.project.dto.req.ShortLinkUpdateReqDTO;
 import com.project.dto.resp.GroupShortLinkCountRespDTO;
+import com.project.dto.resp.ShortLinkBatchCreateRespDTO;
 import com.project.dto.resp.ShortLinkCreateRespDTO;
 import com.project.dto.resp.ShortLinkPageRespDTO;
 import jakarta.servlet.ServletRequest;
@@ -25,7 +27,7 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      * @param requestParam
      * @return
      */
-    ShortLinkCreateRespDTO create(ShortLinkCreateReqDTO requestParam);
+    ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam);
 
     /**
      * 分页查询短链接
@@ -54,4 +56,12 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      * @param response 响应
      */
     void shortLinkRedirect(String shortUri, ServletRequest request, ServletResponse response) ;
+
+    /**
+     * 批量创建短链接
+     *
+     * @param requestParam 批量创建短链接请求参数
+     * @return 批量创建短链接返回参数
+     */
+    ShortLinkBatchCreateRespDTO batchCreateShortLink(ShortLinkBatchCreateReqDTO requestParam);
 }
