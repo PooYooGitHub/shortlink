@@ -66,6 +66,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     @Value("${short-link.location.key}")
     private String locationKey;
+    @Value("${short-link.domain.default}")
+    private String defaultDomain;
 
 
     private final RBloomFilter<String> shortLinkCachePenetrationBloomFilter;
@@ -92,7 +94,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         String shortUrl;
         do {
             shortUri = HashUtil.hashToBase62(requestParam.getOriginUrl() + System.currentTimeMillis());
-            shortUrl = requestParam.getDomain() + "/" + shortUri;
+            shortUrl = defaultDomain + "/" + shortUri;
         } while (shortLinkCachePenetrationBloomFilter.contains(shortUrl));
 
         ShortLinkDO shortLinkDO = BeanUtil.toBean(requestParam, ShortLinkDO.class);
@@ -223,7 +225,13 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         //由于短链接的分片键是gid，查询尽量用gid查询，不然就会查询所有的表，
         //所以这里我创建了一个新的表，用来存储短链接和gid的对应关系goto
         String protocol = ((HttpServletRequest) request).getScheme();
-        String shortUrl = protocol + "://" + request.getServerName() + "/" + shortUri;
+        String serverPort=String.valueOf(request.getServerPort());
+        if (!Objects.equals(serverPort, "80")){
+            serverPort=":"+serverPort;
+        }else {
+            serverPort="";
+        }
+        String shortUrl = protocol + "://" + request.getServerName() +serverPort+ "/" + shortUri;
         String originalUrl = stringRedisTemplate.opsForValue().get(String.format(GO_TO_SHORT_LINK_KEY, shortUrl));
         if (StringUtil.isBlank(originalUrl)) {
             //redis中没有短链接和原始链接的对应关系，查询数据库

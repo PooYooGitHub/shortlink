@@ -31,3 +31,5 @@ mybatis-plus:
 short-link:
   location:
     key: 03efb55cd68660d89733f029f8803eb6
+  domain:
+    default: http://www.shyu.com:8001
