@@ -10,6 +10,7 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -100,6 +101,10 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         shortLinkDO.setFullShortUrl(shortUrl);
         shortLinkDO.setEnableStatus(0);
         shortLinkDO.setFavicon(getFavicon(requestParam.getOriginUrl()));
+        shortLinkDO.setTotalPv(0);
+        shortLinkDO.setTotalUv(0);
+        shortLinkDO.setTotalUip(0);
+
 
         baseMapper.insert(shortLinkDO);
         //将新生成的短链接存入布隆过滤器,防止下次生成的短链接重复
@@ -169,8 +174,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     @Override
     //TODO：数据库表的插入时间和更新时间与真实插入时间相差几个小时，需要修改
-    //TODO：validdatetype如果从1改为0，validdate的值不会改变，也就是改为永久有效时，还是存在过期时间
-    public void updateGroup(ShortLinkUpdateReqDTO requestParam) {
+    //TODO：validatetype如果从1改为0，validate的值不会改变，也就是改为永久有效时，还是存在过期时间
+    public void updateShortLink(ShortLinkUpdateReqDTO requestParam) {
         LambdaQueryWrapper<ShortLinkDO> eq = Wrappers.lambdaQuery(ShortLinkDO.class)
                 .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
                 .eq(ShortLinkDO::getGid, requestParam.getOriginGid())
@@ -186,6 +191,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         shortLinkDO.setValidDate(requestParam.getValidDate());
         shortLinkDO.setOriginUrl(requestParam.getOriginUrl());
         shortLinkDO.setFavicon(getFavicon(requestParam.getOriginUrl()));
+//        shortLinkDO.setValidDate(requestParam.getValidDate());
         //由于可能要修改分组，而分组gid是t_link的分片键，所以只能先删除再插入
         if (!requestParam.getGid().equals(requestParam.getOriginGid())) {
             //说明分组发生了变化
@@ -203,10 +209,11 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ShortLinkGoToMapper.update(shortLinkGoToDO, eq1);
         } else {
             //由于gid是分片键，更新时gid不能变，更新的实体不能携带gid
-            Wrappers.lambdaQuery(ShortLinkDO.class)
+            LambdaUpdateWrapper<ShortLinkDO> eq1 = Wrappers.lambdaUpdate(ShortLinkDO.class)
+                    .set(ShortLinkDO::getValidDate, shortLinkDO.getValidDate())
                     .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
                     .eq(ShortLinkDO::getGid, requestParam.getOriginGid());
-            baseMapper.update(shortLinkDO, eq);
+            getBaseMapper().update(shortLinkDO,eq1);
         }
         //更新redis中的短链接和原始链接的对应关系
         stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortLinkDO.getFullShortUrl()), requestParam.getOriginUrl(), LinkUtil.getShortLinkCacheTime(requestParam.getValidDate()), TimeUnit.MILLISECONDS);
