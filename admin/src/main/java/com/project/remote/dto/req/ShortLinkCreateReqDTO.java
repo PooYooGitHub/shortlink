@@ -16,10 +16,7 @@ public class ShortLinkCreateReqDTO {
      * 描述
      */
     private String describe;
-    /**
-     * 域名
-     */
-    private String domain;
+
     /**
      * 分组
      */
