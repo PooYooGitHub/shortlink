@@ -25,6 +25,11 @@ public class LinkUtil {
         // 当前时间
         long currentTimeMillis = System.currentTimeMillis();
 
+        //如果有效期在当前时间之前,过期时间设置为0
+        if (date != null && date.getTime() < currentTimeMillis) {
+            return 1;
+        }
+
         // 如果 date 为 null（永久有效），则默认设置为一周后的时间戳，并随机一个 0 ~ 24 小时的时间
         if (date == null) {
             Calendar calendar = Calendar.getInstance();
