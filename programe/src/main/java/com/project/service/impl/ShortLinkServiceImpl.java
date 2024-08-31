@@ -95,6 +95,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         } while (shortLinkCachePenetrationBloomFilter.contains(shortUrl));
 
         ShortLinkDO shortLinkDO = BeanUtil.toBean(requestParam, ShortLinkDO.class);
+        shortLinkDO.setDomain(defaultDomain);
         shortLinkDO.setShortUri(shortUri);
         shortLinkDO.setFullShortUrl(shortUrl);
         shortLinkDO.setEnableStatus(0);
