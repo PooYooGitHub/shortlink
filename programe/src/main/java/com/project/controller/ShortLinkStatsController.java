@@ -3,6 +3,7 @@ package com.project.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.project.common.convention.result.Result;
 import com.project.common.convention.result.Results;
+import com.project.dto.req.ShortLinkGroupStatsAccessRecordReqDTO;
 import com.project.dto.req.ShortLinkGroupStatsReqDTO;
 import com.project.dto.req.ShortLinkStatsAccessRecordReqDTO;
 import com.project.dto.req.ShortLinkStatsReqDTO;
@@ -29,6 +30,18 @@ public class ShortLinkStatsController {
     public Result<ShortLinkStatsRespDTO> shortLinkStats(ShortLinkStatsReqDTO requestParam) {
         return Results.success(shortLinkStatsService.oneShortLinkStats(requestParam));
     }
+
+
+    /**
+     * 访问分组短链接指定时间内监控数据
+     */
+    @GetMapping("/api/short-link/v1/stats/group")
+    public Result<ShortLinkStatsRespDTO> groupShortLinkStats(ShortLinkGroupStatsReqDTO requestParam) {
+        return Results.success(shortLinkStatsService.groupShortLinkStats(requestParam));
+    }
+
+
+
     /**
      * 分页查询单个短链接在指定时间内的访问记录
      */
@@ -38,10 +51,11 @@ public class ShortLinkStatsController {
 
     }
     /**
-     * 访问分组短链接指定时间内监控数据
+     * 访问分组短链接指定时间内访问记录监控数据
      */
-    @GetMapping("/api/short-link/v1/stats/group")
-    public Result<ShortLinkStatsRespDTO> groupShortLinkStats(ShortLinkGroupStatsReqDTO requestParam) {
-        return Results.success(shortLinkStatsService.groupShortLinkStats(requestParam));
+    @GetMapping("/api/short-link/v1/stats/access-record/group")
+    public Result<IPage<ShortLinkStatsAccessRecordRespDTO>> groupShortLinkStatsAccessRecord(ShortLinkGroupStatsAccessRecordReqDTO requestParam) {
+        return Results.success(shortLinkStatsService.groupShortLinkStatsAccessRecord(requestParam));
     }
+
 }
