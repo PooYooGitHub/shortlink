@@ -310,12 +310,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     ((HttpServletResponse) response).setStatus(404);
                     return;
                 }
-                if (shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(DateTime.now())) {
+                if (shortLinkDO.getValidDate() != null && (shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(new Date()))) {
                     //短链接不是永久有效，并且已经过期
                     ((HttpServletResponse) response).setStatus(404);
                     return;
                 }
-                //是永久有效，并且没有过期
+                //是永久有效,或者没有过期
                 stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), shortLinkDO.getOriginUrl(), LinkUtil.getShortLinkCacheTime(shortLinkDO.getValidDate()), TimeUnit.MILLISECONDS);
                 originalUrl = shortLinkDO.getOriginUrl();
 
