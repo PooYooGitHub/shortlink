@@ -95,18 +95,18 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             shortUrl = defaultDomain + "/" + shortUri;
         } while (shortLinkCachePenetrationBloomFilter.contains(shortUrl));
 
-        ShortLinkDO shortLinkDO = BeanUtil.toBean(requestParam, ShortLinkDO.class);
-        shortLinkDO.setDomain(defaultDomain);
-        shortLinkDO.setShortUri(shortUri);
-        shortLinkDO.setFullShortUrl(shortUrl);
-        shortLinkDO.setEnableStatus(0);
-        shortLinkDO.setFavicon(getFavicon(requestParam.getOriginUrl()));
-        shortLinkDO.setTotalPv(0);
-        shortLinkDO.setTotalUv(0);
-        shortLinkDO.setTotalUip(0);
+        ShortLinkDO resultDO = BeanUtil.toBean(requestParam, ShortLinkDO.class);
+        resultDO.setDomain(defaultDomain);
+        resultDO.setShortUri(shortUri);
+        resultDO.setFullShortUrl(shortUrl);
+        resultDO.setEnableStatus(0);
+        resultDO.setFavicon(getFavicon(requestParam.getOriginUrl()));
+        resultDO.setTotalPv(0);
+        resultDO.setTotalUv(0);
+        resultDO.setTotalUip(0);
 
 
-        baseMapper.insert(shortLinkDO);
+        baseMapper.insert(resultDO);
         //将新生成的短链接存入布隆过滤器,防止下次生成的短链接重复
         shortLinkCachePenetrationBloomFilter.add(shortUrl);
         //将短链接和gid的对应关系存入goto表
@@ -118,7 +118,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .builder().
                 gid(requestParam.getGid()).
                 originUrl(requestParam.getOriginUrl()).
-                fullShortUrl(shortLinkDO.getFullShortUrl())
+                fullShortUrl(resultDO.getFullShortUrl())
                 .build();
     }
 
@@ -152,8 +152,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     @Override
     public IPage<ShortLinkPageRespDTO> queryPage(ShortLinkPageReqDTO requestParam) {
-        IPage<ShortLinkDO> shortLinkDOPage = baseMapper.pageLink(requestParam);
-        return shortLinkDOPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
+        IPage<ShortLinkDO> resultDOPage = baseMapper.pageLink(requestParam);
+        return resultDOPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
 
     }
 
@@ -185,13 +185,15 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         if (shortLinkDO == null) {
             throw new ClientException("短链接不存在");
         }
+        ShortLinkDO resultDO = new ShortLinkDO();
+        BeanUtil.copyProperties(shortLinkDO, resultDO);
 
-        shortLinkDO.setDescribe(requestParam.getDescribe());
-        shortLinkDO.setValidDateType(requestParam.getValidDateType());
-        shortLinkDO.setValidDate(requestParam.getValidDate());
-        shortLinkDO.setOriginUrl(requestParam.getOriginUrl());
-        shortLinkDO.setFavicon(getFavicon(requestParam.getOriginUrl()));
-//        shortLinkDO.setValidDate(requestParam.getValidDate());
+        resultDO.setDescribe(requestParam.getDescribe());
+        resultDO.setValidDateType(requestParam.getValidDateType());
+        resultDO.setValidDate(requestParam.getValidDate());
+        resultDO.setOriginUrl(requestParam.getOriginUrl());
+        resultDO.setFavicon(getFavicon(requestParam.getOriginUrl()));
+        resultDO.setValidDate(requestParam.getValidDate());
         //由于可能要修改分组，而分组gid是t_link的分片键，所以只能先删除再插入
         if (!requestParam.getGid().equals(requestParam.getOriginGid())) {
             //说明分组发生了变化
@@ -199,24 +201,40 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .eq(ShortLinkDO::getGid, requestParam.getOriginGid())
                     .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl());
             baseMapper.delete(eq2);
-            shortLinkDO.setGid(requestParam.getGid());
-            baseMapper.insert(shortLinkDO);
+            resultDO.setGid(requestParam.getGid());
+            baseMapper.insert(resultDO);
             //更新短链接的goto表
             ShortLinkGoToDO shortLinkGoToDO = ShortLinkGoToDO.builder()
                     .gid(requestParam.getGid()).build();
             LambdaQueryWrapper<ShortLinkGoToDO> eq1 = Wrappers.lambdaQuery(ShortLinkGoToDO.class)
-                    .eq(ShortLinkGoToDO::getShortUrl, shortLinkDO.getFullShortUrl());
+                    .eq(ShortLinkGoToDO::getShortUrl, resultDO.getFullShortUrl());
             ShortLinkGoToMapper.update(shortLinkGoToDO, eq1);
         } else {
             //由于gid是分片键，更新时gid不能变，更新的实体不能携带gid
             LambdaUpdateWrapper<ShortLinkDO> eq1 = Wrappers.lambdaUpdate(ShortLinkDO.class)
-                    .set(ShortLinkDO::getValidDate, shortLinkDO.getValidDate())
+                    .set(ShortLinkDO::getValidDate, resultDO.getValidDate())
                     .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
                     .eq(ShortLinkDO::getGid, requestParam.getOriginGid());
-            getBaseMapper().update(shortLinkDO,eq1);
+            getBaseMapper().update(resultDO,eq1);
         }
-        //更新redis中的短链接和原始链接的对应关系
-        stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortLinkDO.getFullShortUrl()), requestParam.getOriginUrl(), LinkUtil.getShortLinkCacheTime(requestParam.getValidDate()), TimeUnit.MILLISECONDS);
+        //更新缓存
+        if (!Objects.equals(shortLinkDO.getValidDateType(), requestParam.getValidDateType())
+                || !Objects.equals(shortLinkDO.getValidDate(), requestParam.getValidDate())) {
+            //如果有效期类型或者有效期发生了变化，删除缓存
+            stringRedisTemplate.delete(String.format(GO_TO_SHORT_LINK_KEY, requestParam.getFullShortUrl()));
+            if (shortLinkDO.getValidDate() != null) {
+                //原始有效期不是永久有效
+                Date now = new Date();
+                if (shortLinkDO.getValidDate().before(now)) {
+                    //如果原来的短链接已经过期，不存在缓存中可能存在,可能需要在缓存中删除
+                    if (Objects.equals(requestParam.getValidDateType(), 0) || requestParam.getValidDate().after(now)) {
+                        //短链接没有过期
+                        stringRedisTemplate.delete(String.format(GO_TO_IS_NULL_SHORT_LINK_KEY, requestParam.getFullShortUrl()));
+                    }
+                    //短链接过期了,不做处理
+                }
+            }
+        }
 
     }
 
@@ -311,20 +329,20 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                         .eq(ShortLinkDO::getFullShortUrl, shortUrl)
                         .eq(ShortLinkDO::getEnableStatus, 0)
                         .eq(ShortLinkDO::getDelFlag, 0);
-                ShortLinkDO shortLinkDO = baseMapper.selectOne(eq1);
-                if (shortLinkDO == null) {
+                ShortLinkDO resultDO = baseMapper.selectOne(eq1);
+                if (resultDO == null) {
                     //如果短链接不存在，返回404
                     ((HttpServletResponse) response).setStatus(404);
                     return;
                 }
-                if (shortLinkDO.getValidDate() != null && (shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(new Date()))) {
+                if (resultDO.getValidDate() != null && (resultDO.getValidDate() != null && resultDO.getValidDate().before(new Date()))) {
                     //短链接不是永久有效，并且已经过期
                     ((HttpServletResponse) response).setStatus(404);
                     return;
                 }
                 //是永久有效,或者没有过期
-                stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), shortLinkDO.getOriginUrl(), LinkUtil.getShortLinkCacheTime(shortLinkDO.getValidDate()), TimeUnit.MILLISECONDS);
-                originalUrl = shortLinkDO.getOriginUrl();
+                stringRedisTemplate.opsForValue().set(String.format(GO_TO_SHORT_LINK_KEY, shortUrl), resultDO.getOriginUrl(), LinkUtil.getShortLinkCacheTime(resultDO.getValidDate()), TimeUnit.MILLISECONDS);
+                originalUrl = resultDO.getOriginUrl();
 
             } catch (Exception e) {
                 throw new RuntimeException(e);
